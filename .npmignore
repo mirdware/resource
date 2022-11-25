@@ -1,0 +1,20 @@
+/node_modules
+/src
+/app
+/config
+/lib/css
+/lib/app
+/lib/favicon.ico
+/lib/index.html
+/lib/response.json
+.gitattributes
+.gitignore
+*.lock
+*.log
+!.gitkeep
+# Windows detritus
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
