@@ -7,6 +7,7 @@
  * @var {u} url
  * @var {rd} redirect
  * @var {r} response
+ * @var {_p} path
  */
 function sendRequest(request, callback) {
   function serialize(data) {
@@ -77,9 +78,10 @@ function manage(resource, method, data, queryString) {
     d: data,
     q: queryString,
     h: resource.headers,
-    u: resource.url + (resource.path || ''),
+    u: resource.url + resource._p,
     rd: resource.redirect
   };
+  resource._p = '';
   return new Promise((resolve, reject) => {
     if (Worker) {
       const blob = new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}']);
@@ -96,28 +98,38 @@ export default class Resource {
   constructor(url, headers) {
     this.url = url;
     this.redirect = true;
+    this._p = '';
     this.headers = Object.assign({
       'X-Requested-With': 'XMLHttpRequest'
     }, headers || {});
   }
 
+  route(path) {
+    this._p += path;
+    return this;
+  }
+
   get(queryString) {
-    return manage(this, 'GET', null, queryString);
+    return this.send('GET', null, queryString);
   }
 
   post(dataBody, queryString) {
-    return manage(this, 'POST', dataBody, queryString)
+    return this.send('POST', dataBody, queryString)
   }
 
   put(dataBody, queryString) {
-    return manage(this, 'PUT', dataBody, queryString);
+    return this.send('PUT', dataBody, queryString);
   }
 
   delete(queryString) {
-    return manage(this, 'DELETE', null, queryString);
+    return this.send('DELETE', null, queryString);
   }
 
-  request(method, dataBody, queryString) {
+  patch(dataBody, queryString) {
+    return this.send('PATCH', dataBody, queryString);
+  }
+
+  send(method, dataBody, queryString) {
     return manage(this, method, dataBody, queryString);
   }
 }
