@@ -104,7 +104,7 @@ export default class Resource {
     }, headers || {});
   }
 
-  route(path) {
+  addPath(path) {
     this._p += path;
     return this;
   }

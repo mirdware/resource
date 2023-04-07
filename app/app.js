@@ -3,13 +3,13 @@ import Resource from '../src/spawm/resource';
 
 class Post extends Resource {
     constructor() {
-        super('https://jsonplaceholder.typicode.com/posts');
+        super('https://jsonplaceholder.typicode.com/posts/{id}');
     }
 
     async getDetail(id) {
         const response = await Promise.all([
-            this.route('/{id}').get({ id }),
-            this.route('/{id}/comments').get({ id }),
+            this.get({ id }),
+            this.addPath('/comments').get({ id }),
         ]);
         const detail = response[0];
         detail.comments = response[1];

@@ -2,7 +2,7 @@
 Libreria encargada de obtener información desde un servicio web haciendo uso de una arquitectura REST.
 
 ## Instalación
-Mediante node se puede instalar con el comando `npm i @spawm/resource` o manualmente haciendo uso del [CDN](https://unpkg.com/@spawm/resource@0.1.0/lib/resource/resource.min.js).
+Mediante node se puede instalar con el comando `npm i @spawm/resource` o manualmente haciendo uso del [CDN](https://unpkg.com/@spawm/resource).
 
  ## Uso
  Para utilizar un recurso basta con instanciar un objeto de la clase Resource.
@@ -30,19 +30,31 @@ A parte de sobrescribir propiedades como observamos en el ejemplo anterior media
 
 ## Métodos
 
-* **get:** El método GET solicita una representación de un recurso específico. Las peticiones que usan el método GET sólo deben recuperar datos. Solo acepta como parametro un objeto que convertira en el query string.
+* **get:** El método `get` solicita una representación de un recurso específico. Las peticiones que usan el método GET sólo deben recuperar datos. Solo acepta como parametro un objeto que convertira en el query string.
 
-* **post:** El método POST se utiliza para enviar una entidad a un recurso en específico, causando a menudo un cambio en el estado o efectos secundarios en el servidor. Recibe dos objetos como paramteros, el primero es el que se enviara dentro del cuerpo del mansaje y el segundo opcional un query string.
+* **post:** El método `post` se utiliza para enviar una entidad a un recurso en específico, causando a menudo un cambio en el estado o efectos secundarios en el servidor. Recibe dos objetos como paramteros, el primero es el que se enviara dentro del cuerpo del mansaje y el segundo opcional un query string.
 
-* **put:** El modo PUT reemplaza todas las representaciones actuales del recurso de destino con la carga útil de la petición. Recibe dos objetos como paramteros, el primero es el que se enviara dentro del cuerpo del mansaje y el segundo opcional un query string.
+* **put:** El modo `put` reemplaza todas las representaciones actuales del recurso de destino con la carga útil de la petición. Recibe dos objetos como paramteros, el primero es el que se enviara dentro del cuerpo del mansaje y el segundo opcional un query string.
 
-* **delete:** El método DELETE borra un recurso en específico. Solo acepta como parametro un objeto que convertira en el query string.
+* **delete:** El método `delete` borra un recurso en específico. Solo acepta como parametro un objeto que convertira en el query string.
 
-* **patch:** El método PATCH es utilizado para aplicar modificaciones parciales a un recurso. Recibe dos objetos como paramteros, el primero es el que se enviara dentro del cuerpo del mansaje y el segundo opcional un query string.
+* **patch:** El método `patch` es utilizado para aplicar modificaciones parciales a un recurso. Recibe dos objetos como paramteros, el primero es el que se enviara dentro del cuerpo del mansaje y el segundo opcional un query string.
 
-* **send:** EL método SEND es el principal y por el cual pasan todas las peticiones que se deben realizar al servidor, podemos pensar en los anteriores métodos como alias de este. Recibe tres parametros, el primero es un setring con el nombre del método por el cual se envia la petición, el segundo el objeto que se enviara en el cuerpo de la petición y el último el query string, igualmente como objeto javascript.
+* **send:** El método `send` es el principal y por el cual pasan todas las peticiones que se deben realizar al servidor, podemos pensar en los anteriores métodos como alias de este. Recibe tres parametros, el primero es un setring con el nombre del método por el cual se envia la petición, el segundo el objeto que se enviara en el cuerpo de la petición y el último el query string, igualmente como objeto javascript.
 
-* **route:** El método ROUTE no envia peticiones al servidor, si no que sirve de ayuda para complementar las rutas del recurso, es comun que una recurso no se maneje siempre en la misma routa, por ejemplo `/cursos` puede traer una colección de cursos o agregar un nuevo curso, pero para modificar un curso u obtener uno en especifico se debria acceder a `/curso/spawm` con lo cual se debe complementar la url del recurso con `this.route('/spawm')`. Como podemos observar recibe un string como parametro y puede concatenar varios; al momento de realizar la petición la url del recurso regresa a su estado original.
+* **addPath:** El método `addPath` no envía peticiones al servidor, si no que sirve de ayuda para complementar la ruta del recurso; por ejemplo cuando un recurso `/posts/1` que maneja relaciones podría tener una url `/posts/1/comments`, para la situcación anterior tendriamos el siguiente caso:
+
+```javascript
+const Resource = new Resource('/posts/{id}');
+// Carga todos los recursos
+resource.get().then(res => console.log(res));
+//carga solo el recurso 1
+resource.get({ id: 1 }).then(res => console.log(res));
+//carga los comentarios del recurso 1
+resource.addPath('/comments').get({ id: 1 });
+```
+
+Como podemos observar el método addPath recibe un string como parametro el cual sera concatenado a la url original del recurso y devuelve la referencia al mismo recurso; al momento de realizar la petición la url del recurso regresa a su estado original.
 
 ## Evitando los interceptores
 Otra funcionalidad de la programación oriendata a objetos que podemos usar es el polimorfismo, lo cual nos permite modificar peticiones o respuestas; tareas delegadas en la mayoria de casos a intecptores.
