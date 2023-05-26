@@ -7,8 +7,11 @@
  * @var {u} url
  * @var {rd} redirect
  * @var {r} response
- * @var {_p} path
+ * @var {t} type
  */
+
+const privy = new WeakMap();
+
 function sendRequest(request, callback) {
   function serialize(data) {
     const formData = new FormData();
@@ -44,16 +47,17 @@ function sendRequest(request, callback) {
   for (const header in headers) {
     xhr.setRequestHeader(header, headers[header]);
   }
+  request.t && (xhr.responseType = request.t);
   xhr.send(headers['Content-Type'] === 'application/json' ? JSON.stringify(request.d) : serialize(request.d));
   xhr.onreadystatechange = () => {
     if (xhr.readyState === 4) {
       const content = xhr.getResponseHeader('Content-Type');
       const { responseURL } = xhr;
-      let response = xhr.responseText;
-      if (content) {
+      let { response } = xhr;
+      if (!request.t && content) {
         if (content.indexOf('application/json') !== -1) {
           response = JSON.parse(response);
-        } else if (/(application|text)\/xml/.test(content)) {
+        } else if (/(application|text)\/(ht|x)ml/.test(content)) {
           response = xhr.responseXML;
         }
       }
@@ -73,15 +77,11 @@ function solve(xhr, resolve, reject) {
 }
 
 function manage(resource, method, data, queryString) {
-  const request = {
+  const request = Object.assign(resource, {
     m: method,
     d: data,
-    q: queryString,
-    h: resource.headers,
-    u: resource.url + resource._p,
-    rd: resource.redirect
-  };
-  resource._p = '';
+    q: queryString
+  });
   return new Promise((resolve, reject) => {
     if (Worker) {
       const blob = new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}']);
@@ -94,19 +94,9 @@ function manage(resource, method, data, queryString) {
   });
 }
 
-export default class Resource {
-  constructor(url, headers) {
-    this.url = url;
-    this.redirect = true;
-    this._p = '';
-    this.headers = Object.assign({
-      'X-Requested-With': 'XMLHttpRequest'
-    }, headers || {});
-  }
-
-  addPath(path) {
-    this._p += path;
-    return this;
+class Endpoint {
+  constructor(options) {
+    privy.set(this, options);
   }
 
   get(queryString) {
@@ -130,6 +120,29 @@ export default class Resource {
   }
 
   send(method, dataBody, queryString) {
-    return manage(this, method, dataBody, queryString);
+    return manage(privy.get(this), method, dataBody, queryString);
+  }
+}
+
+export default class Resource extends Endpoint {
+  constructor(url, options) {
+    options = options || {};
+    super({
+      u: url,
+      rd: options.redirect ?? true,
+      t: options.type,
+      h: Object.assign({
+        'X-Requested-With': 'XMLHttpRequest'
+      }, options.headers || {})
+    });
+  }
+
+  add(options) {
+    const properties = Object.assign({}, privy.get(this));
+    options.path && (properties.u += options.path);
+    options.redirect && (properties.rd = options.redirect);
+    options.type && (properties.t = options.type);
+    options.header && Object.assign(properties.h, options.header);
+    return new Endpoint(properties);
   }
 }
