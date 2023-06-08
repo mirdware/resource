@@ -10,7 +10,7 @@ Mediante node se puede instalar con el comando `npm i @spawm/resource` o manualm
 ```javascript
 import Resource from '@spawm/resource';
 
-const user = new Resource('response.json');
+const user = new Resource('https://sespesoft.com/response.json');
 ```
 
 Ya con el objeto se pueden invocar sus métodos `get`, `post`, `put`, `delete`, `patch` o `send`, este último se usa para crear una petición personalizada (TRACE, OPTIONS, HEAD, CONNECT). Hasta el momento no existe mucha diferencia con el uso de [fetch](https://developer.mozilla.org/es/docs/Web/API/Fetch_API) y es acá donde cabe recordar que Resource es una clase y como tal la podemos usar para aprovechar todas las caracteristicas de la programación orientada a objetos; como por ejemplo la herencia.
@@ -42,7 +42,7 @@ A parte de sobrescribir propiedades como observamos en el ejemplo anterior media
 
 * **send:** El método `send` es el principal y por el cual pasan todas las peticiones que se deben realizar al servidor, podemos pensar en los anteriores métodos como alias de este. Recibe tres parametros, el primero es un setring con el nombre del método por el cual se envia la petición, el segundo el objeto que se enviara en el cuerpo de la petición y el último el query string, igualmente como objeto javascript.
 
-* **addPath:** El método `addPath` no envía peticiones al servidor, si no que sirve de ayuda para complementar la ruta del recurso; por ejemplo cuando un recurso `/posts/1` que maneja relaciones podría tener una url `/posts/1/comments`, para la situcación anterior tendriamos el siguiente caso:
+* **add:** El método `add` no envía peticiones al servidor, su función es crear un nuevo recurso sobreescribiendo las propiedades del recurso que llama el método; el nuevo recurso no puede volver a lllamar al método add. Por ejemplo un recurso `/posts/1` podría tener una url `/posts/1/comments` donde se listan los comentarios del post, para esta situcación tendriamos el siguiente caso:
 
 ```javascript
 const Resource = new Resource('/posts/{id}');
@@ -51,10 +51,10 @@ resource.get().then(res => console.log(res));
 //carga solo el recurso 1
 resource.get({ id: 1 }).then(res => console.log(res));
 //carga los comentarios del recurso 1
-resource.addPath('/comments').get({ id: 1 });
+resource.add({path: '/comments'}).get({ id: 1 });
 ```
 
-Como podemos observar el método addPath recibe un string como parametro el cual sera concatenado a la url original del recurso y devuelve la referencia al mismo recurso; al momento de realizar la petición la url del recurso regresa a su estado original.
+Como podemos observar el método add recibe un objeto como parametro el cual tiene las propiedades `path`, `headers`, `redirect` y `type`; para los dos primero el nuevo recurso extendera la propiedad, es decir concatera la parte del path que hace falta y agregara los headers que se envian, miestras que para los últimos dos directamente reemplazara las propiedades.
 
 ## Evitando los interceptores
 Otra funcionalidad de la programación oriendata a objetos que podemos usar es el polimorfismo, lo cual nos permite modificar peticiones o respuestas; tareas delegadas en la mayoria de casos a intecptores.

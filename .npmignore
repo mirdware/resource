@@ -7,6 +7,7 @@
 /lib/favicon.ico
 /lib/index.html
 /lib/response.json
+/lib/footer.html
 .gitattributes
 .gitignore
 *.lock

@@ -23,8 +23,25 @@ class Photo extends Resource {
     }
 }
 
+function downloadBlob(blob, name = 'file.txt') {
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = name;
+    document.body.appendChild(link);
+    link.dispatchEvent(
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      })
+    );
+    document.body.removeChild(link);
+  }
+
 const post = new Post();
 const photo = new Photo();
+const file = new Resource(window.location.origin + '/response.json', {type: 'blob'});
 
 async function showDetail(e) {
     e.preventDefault();
@@ -68,9 +85,10 @@ async function showDetail(e) {
 }
 
 async function showMain() {
-    const res = await post.get();
+    const footer = new Resource(window.location.origin + '/footer.html');
+    const res = await Promise.all([post.get(), footer.get()]);
     const fragment = document.createDocumentFragment();
-    res.splice(0 , 30).forEach((todo) => {
+    res[0].splice(0 , 30).forEach((todo) => {
         const a = document.createElement('a');
         const li = document.createElement('li');
         const text = document.createTextNode(todo.title);
@@ -86,6 +104,7 @@ async function showMain() {
     ul.appendChild(fragment);
     document.getElementById('main').replaceChildren(ul);
     document.querySelector('.overlay').style.display = 'none';
+    document.querySelector('footer').innerHTML = res[1];
 }
 
 showMain();
@@ -95,3 +114,8 @@ document.querySelector('.return').addEventListener('click', (e) => {
     document.querySelector('.overlay').style.display = 'block';
     showMain();
 });
+
+document.querySelector('.download').addEventListener('click', (e) => {
+    e.preventDefault();
+    file.get().then((blob) => downloadBlob(blob));
+})

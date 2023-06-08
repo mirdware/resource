@@ -47,7 +47,7 @@ function sendRequest(request, callback) {
   for (const header in headers) {
     xhr.setRequestHeader(header, headers[header]);
   }
-  request.t && (xhr.responseType = request.t);
+  xhr.responseType = request.t;
   xhr.send(headers['Content-Type'] === 'application/json' ? JSON.stringify(request.d) : serialize(request.d));
   xhr.onreadystatechange = () => {
     if (xhr.readyState === 4) {
@@ -57,7 +57,7 @@ function sendRequest(request, callback) {
       if (!request.t && content) {
         if (content.indexOf('application/json') !== -1) {
           response = JSON.parse(response);
-        } else if (/(application|text)\/(ht|x)ml/.test(content)) {
+        } else if (/(application|text)\/xml/.test(content)) {
           response = xhr.responseXML;
         }
       }
@@ -130,7 +130,7 @@ export default class Resource extends Endpoint {
     super({
       u: url,
       rd: options.redirect ?? true,
-      t: options.type,
+      t: options.type ?? '',
       h: Object.assign({
         'X-Requested-With': 'XMLHttpRequest'
       }, options.headers || {})

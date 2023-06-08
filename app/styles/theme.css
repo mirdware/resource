@@ -15,12 +15,15 @@ h1, h2, h3, h4 {
   'GRAD' 0,
   'opsz' 48
 }
-.return {
+.material-symbols-outlined {
   text-decoration: none;
   text-align: center;
 }
 section {
   padding: 0 1em;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 70px);
 }
 section h1, h2 {
   text-align: center;
@@ -37,11 +40,20 @@ img {
   vertical-align: middle;
   margin: 0 1em;
 }
+footer {
+  text-align: center;
+  flex: 1;
+  padding: 1em;
+  height: 70px;
+  box-sizing: border-box;
+  background:#FF8700;
+  color: #FFF;
+}
 .overlay {
   width: 100%;
   background-color: #fff;
-  position: absolute;
-  height: 100%;
+  position: fixed;
+  min-height: 100vh;
   top:0;
 }
 .overlay img {

@@ -19,6 +19,7 @@ module.exports = [
   new CopyWebpackPlugin({
     patterns: [
       { from: './app/response.json', to: 'response.json' },
+      { from: './app/footer.html', to: 'footer.html' }
     ]
   })
 ];
