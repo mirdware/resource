@@ -4,8 +4,7 @@ import Resource from '../src/spawm/resource';
 class Post extends Resource {
     constructor() {
         super('https://jsonplaceholder.typicode.com/posts/{id}', {
-            cache: Infinity,
-            revalidate: {focus: 5}
+            cache: Infinity
         });
     }
 
@@ -18,12 +17,37 @@ class Post extends Resource {
         detail.comments = response[1];
         return detail;
     }
+
+    async revalidate() {
+        super.revalidate(async (resource) => {
+            console.log(resource);
+            const posts = await resource.get();
+            const fragment = document.createDocumentFragment();
+            const ul = document.createElement('ul');
+            posts.splice(0 , 30).forEach((todo) => {
+                const a = document.createElement('a');
+                const li = document.createElement('li');
+                const text = document.createTextNode(todo.title);
+                a.setAttribute('href', '');
+                a.dataset.id = todo.id;
+                a.addEventListener('click', showDetail);
+                a.appendChild(text);
+                li.appendChild(a);
+                fragment.appendChild(li);
+                document.querySelector('.return').style.display = 'none';
+            });
+            ul.appendChild(fragment);
+            document.getElementById('main').replaceChildren(ul);
+        }, {
+            focus: 30
+        });
+    }
 }
 
 class Photo extends Resource {
     constructor() {
         super('https://jsonplaceholder.typicode.com/photos/{id}', {
-            cache: 15
+            cache: 60
         });
     }
 }
@@ -91,23 +115,7 @@ async function showDetail(e) {
 
 async function showMain() {
     const footer = new Resource(location.origin + '/footer.html', {cache: Infinity});
-    const res = await Promise.all([post.get(), footer.get()]);
-    const fragment = document.createDocumentFragment();
-    res[0].splice(0 , 30).forEach((todo) => {
-        const a = document.createElement('a');
-        const li = document.createElement('li');
-        const text = document.createTextNode(todo.title);
-        a.setAttribute('href', '');
-        a.dataset.id = todo.id;
-        a.addEventListener('click', showDetail);
-        a.appendChild(text);
-        li.appendChild(a);
-        fragment.appendChild(li);
-        document.querySelector('.return').style.display = 'none';
-    });
-    const ul = document.createElement('ul');
-    ul.appendChild(fragment);
-    document.getElementById('main').replaceChildren(ul);
+    const res = await Promise.all([post.revalidate(), footer.get()]);
     document.querySelector('.overlay').style.display = 'none';
     document.querySelector('footer').innerHTML = res[1];
 }

@@ -1,4 +1,6 @@
 import { sendRequest } from "./sandbox";
+import { set, get } from "../cache";
+
 /**
  *
  * @var {m} method
@@ -10,10 +12,10 @@ import { sendRequest } from "./sandbox";
  * @var {r} response
  * @var {t} type
  * @var {c} cache
- * @var {nd} nextDate
+ * @var {n} now
+ * @var {w} worker
  */
 const fn = {};
-const cache = {};
 
 function solve(xhr, resolve, reject) {
   if (xhr.rd) return location = xhr.u;
@@ -21,10 +23,10 @@ function solve(xhr, resolve, reject) {
 }
 
 function execute(key, request, response, resolve, reject) {
-  if (request !== Infinity && !isNaN(request.c)) {
-    response.nd = new Date(new Date().getTime() + 1000 * request.c);
+  if (!isNaN(request.c)) {
+    response.n = new Date();
+    set(key, response);
   }
-  cache[key] = JSON.stringify(response);
   solve(response, resolve, reject);
 }
 
@@ -51,11 +53,15 @@ export default function manage(resource, method, data, queryString) {
       q: request.q,
       u: request.u
     });
-    if (cache[key]) {
-      const res = JSON.parse(cache[key]);
-      if (request.c === Infinity || (res.nd && new Date(res.nd) > new Date())) {
-        return solve(res, resolve, reject);
-      }
+    const res = get(key);
+    if (
+      request.m === 'GET' && res &&
+      (
+        request.c === Infinity ||
+        new Date(new Date(res.n).getTime() + 1000 * request.c) > new Date()
+      )
+    ) {
+      return solve(res, resolve, reject);
     }
     if (worker) {
       worker.postMessage(request);
@@ -63,6 +69,7 @@ export default function manage(resource, method, data, queryString) {
         if (data.id === id) {
           execute(key, request, data, resolve, reject);
           worker.removeEventListener('message', fn[id]);
+          delete fn[id];
         }
       };
       return worker.addEventListener('message', fn[id]);

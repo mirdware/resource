@@ -1,5 +1,7 @@
-import manage from "./request/manage";
+
+import Endpoint from "./Endpoint";
 import { sendRequest } from "./request/sandbox";
+import { privy } from "./cache";
 
 /**
  *
@@ -12,55 +14,22 @@ import { sendRequest } from "./request/sandbox";
  * @var {r} response
  * @var {t} type
  * @var {c} cache
+ * @var {w} worker
  */
-const privy = new WeakMap();
-
-function createWorker() {
-  if (Worker){
-    const blob = new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}']);
-    const worker = new Worker(URL.createObjectURL(blob));
-    return worker;
-  }
-}
-
-class Endpoint {
-  constructor(options) {
-    privy.set(this, options);
-  }
-
-  get(queryString) {
-    return this.send('GET', null, queryString);
-  }
-
-  post(dataBody, queryString) {
-    return this.send('POST', dataBody, queryString)
-  }
-
-  put(dataBody, queryString) {
-    return this.send('PUT', dataBody, queryString);
-  }
-
-  delete(queryString) {
-    return this.send('DELETE', null, queryString);
-  }
-
-  patch(dataBody, queryString) {
-    return this.send('PATCH', dataBody, queryString);
-  }
-
-  send(method, dataBody, queryString) {
-    return manage(privy.get(this), method, dataBody, queryString);
-  }
-}
-
 export default class Resource extends Endpoint {
-  constructor(url, options) {
+  constructor(u, options) {
     options = options || {};
+    let w;
+    if (Worker){
+      w = new Worker(URL.createObjectURL(
+        new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}'])
+      ));
+    }
     super({
-      u: url,
+      w,
+      u,
       rd: options.redirect ?? true,
       t: options.type ?? '',
-      w: createWorker(),
       c: options.cache,
       h: Object.assign({
         'X-Requested-With': 'XMLHttpRequest'
