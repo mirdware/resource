@@ -3,7 +3,10 @@ import Resource from '../src/spawm/resource';
 
 class Post extends Resource {
     constructor() {
-        super('https://jsonplaceholder.typicode.com/posts/{id}');
+        super('https://jsonplaceholder.typicode.com/posts/{id}', {
+            cache: Infinity,
+            revalidate: {focus: 5}
+        });
     }
 
     async getDetail(id) {
@@ -19,7 +22,9 @@ class Post extends Resource {
 
 class Photo extends Resource {
     constructor() {
-        super('https://jsonplaceholder.typicode.com/photos/{id}');
+        super('https://jsonplaceholder.typicode.com/photos/{id}', {
+            cache: 15
+        });
     }
 }
 
@@ -41,7 +46,7 @@ function downloadBlob(blob, name = 'file.txt') {
 
 const post = new Post();
 const photo = new Photo();
-const file = new Resource(window.location.origin + '/response.json', {type: 'blob'});
+const file = new Resource(location.origin + '/response.json', {type: 'blob'});
 
 async function showDetail(e) {
     e.preventDefault();
@@ -85,7 +90,7 @@ async function showDetail(e) {
 }
 
 async function showMain() {
-    const footer = new Resource(window.location.origin + '/footer.html');
+    const footer = new Resource(location.origin + '/footer.html', {cache: Infinity});
     const res = await Promise.all([post.get(), footer.get()]);
     const fragment = document.createDocumentFragment();
     res[0].splice(0 , 30).forEach((todo) => {

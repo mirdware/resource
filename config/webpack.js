@@ -17,7 +17,7 @@ module.exports = {
   module: require('./module'),
   optimization: require('./optimization'),
   devServer: {
-    host: 'local-ip',
+    host: '0.0.0.0',
     allowedHosts: ['all'],
     hot:false,
     liveReload: true,

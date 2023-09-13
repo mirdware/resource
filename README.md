@@ -3,6 +3,15 @@ Libreria encargada de obtener información desde un servicio web haciendo uso de
 
 ## Instalación
 Mediante node se puede instalar con el comando `npm i @spawm/resource` o manualmente haciendo uso del [CDN](https://unpkg.com/@spawm/resource).
+  
+## Configuración
+
+Es posible configurar la petición enviando como segundo parametro del constructor de `Resource` los siguientes datos:
+
+* **headers:** __[{'X-Requested-With': 'XMLHttpRequest'}]__ Las cabeceras que enviara la petición, por defecto solo se envia la cabecera `X-Requested-With`, cabe recordar que una vez agregada una cabecera no es posible eliminarla.
+* **redirect:** __true__ sí el servidor responde desdeuna ubicación diferente a la cual fue realizada la petición, el sistema realizara una redirección hacia esta nueva url.
+* **type:** son los tipos de respuesta que se esperan del servidor según el [respoonseType](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseType). Si se deja vacio la libreria tratara de parsearlo según las cabeceras de respuesta del servidor.
+* **cache:** Valor númerico que indica cuanto segundos dura la respuesta siendo valida antes de volverva hacer una nueva petición(En futuras versiones esta propiedad puede cambiar).
 
  ## Uso
  Para utilizar un recurso basta con instanciar un objeto de la clase Resource.
@@ -42,7 +51,7 @@ A parte de sobrescribir propiedades como observamos en el ejemplo anterior media
 
 * **send:** El método `send` es el principal y por el cual pasan todas las peticiones que se deben realizar al servidor, podemos pensar en los anteriores métodos como alias de este. Recibe tres parametros, el primero es un setring con el nombre del método por el cual se envia la petición, el segundo el objeto que se enviara en el cuerpo de la petición y el último el query string, igualmente como objeto javascript.
 
-* **add:** El método `add` no envía peticiones al servidor, su función es crear un nuevo recurso sobreescribiendo las propiedades del recurso que llama el método; el nuevo recurso no puede volver a lllamar al método add. Por ejemplo un recurso `/posts/1` podría tener una url `/posts/1/comments` donde se listan los comentarios del post, para esta situcación tendriamos el siguiente caso:
+* **add:** El método `add` no envía peticiones al servidor, su función es crear un nuevo recurso sobreescribiendo las propiedades del recurso que llama el método; el nuevo recurso no puede volver a llamar al método add. Por ejemplo un recurso `/posts/1` podría tener una url `/posts/1/comments` donde se listan los comentarios del post, para esta situcación tendriamos el siguiente caso:
 
 ```javascript
 const Resource = new Resource('/posts/{id}');
