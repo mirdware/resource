@@ -1,5 +1,4 @@
-
-import Endpoint from "./Endpoint";
+import Endpoint from "./endpoint";
 import { sendRequest } from "./request/sandbox";
 import { privy } from "./cache";
 

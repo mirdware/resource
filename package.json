@@ -2,7 +2,7 @@
   "name": "@spawm/resource",
   "version": "0.1.3",
   "description": "Async resources with webworkers",
-  "main": "./lib/resource/Resource.js",
+  "main": "./lib/resource/resource.js",
   "types": "./resource.d.ts",
   "scripts": {
     "build": "rimraf lib && webpack --config config/webpack.js --mode production",

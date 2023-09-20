@@ -8,6 +8,7 @@
  * @var {rd} redirect
  * @var {r} response
  * @var {t} type
+ * @var {s} status
  */
 export function sendRequest(request, callback) {
   function serialize(data) {
@@ -37,34 +38,54 @@ export function sendRequest(request, callback) {
     return url.replace(/\/\{(\w+)\}/gi, '');
   }
 
-  const headers = request.h;
-  const xhr = new XMLHttpRequest();
-  const url = formatURL(request.u, request.q) + formatQueryString(request.u.indexOf('?') === -1 ? '?' : '&', request.q);
-  xhr.open(request.m, url, true);
-  for (const header in headers) {
-    xhr.setRequestHeader(header, headers[header]);
-  }
-  xhr.responseType = request.t;
-  xhr.send(headers['Content-Type'] === 'application/json' ? JSON.stringify(request.d) : serialize(request.d));
-  xhr.onreadystatechange = () => {
-    if (xhr.readyState === 4) {
-      const content = xhr.getResponseHeader('Content-Type');
-      const { responseURL } = xhr;
-      let { response } = xhr;
-      if (!request.t && content) {
-        if (content.indexOf('application/json') !== -1) {
-          response = JSON.parse(response);
-        } else if (/(application|text)\/xml/.test(content)) {
-          response = xhr.responseXML;
-        }
-      }
-      callback({
-        id: request.id,
-        r: response,
-        u: responseURL,
-        s: xhr.status,
-        rd: request.rd && responseURL !== url
-      });
+  function send(fn) {
+    const headers = request.h;
+    const xhr = new XMLHttpRequest();
+    const url = formatURL(request.u, request.q) + formatQueryString(request.u.indexOf('?') === -1 ? '?' : '&', request.q);
+    xhr.open(request.m, url, true);
+    for (const header in headers) {
+      xhr.setRequestHeader(header, headers[header]);
     }
-  };
+    xhr.responseType = request.t;
+    xhr.send(headers['Content-Type'] === 'application/json' ? JSON.stringify(request.d) : serialize(request.d));
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        const content = xhr.getResponseHeader('Content-Type');
+        const { responseURL } = xhr;
+        let { response } = xhr;
+        if (!request.t && content) {
+          if (content.indexOf('application/json') !== -1) {
+            response = JSON.parse(response);
+          } else if (/(application|text)\/xml/.test(content)) {
+            response = xhr.responseXML;
+          }
+        }
+        fn({
+          id: request.id,
+          r: response,
+          u: responseURL,
+          s: xhr.status,
+          rd: request.rd && responseURL && responseURL !== url,
+          swr: JSON.stringify(response) === request.r 
+        });
+      }
+    };
+  }
+
+  function validate() {
+    send((res) =>{
+      if (!res.swr) {
+        callback(res);
+        request.r = JSON.stringify(res.r);
+      }
+    });
+  }
+
+  if (request.i) {
+    validate();
+    return setInterval(() => {
+      validate();
+    }, request.i * 1000);
+  }
+  send(callback);
 }

@@ -1,16 +1,6 @@
 import manage from "./request/manage";
+import { setStale, validate } from "./request/validate";
 import { privy } from "./cache";
-
-const next = {};
-
-function validate(resource, name, callback, time) {
-    const now = new Date();
-    const nextDate = next[name];
-    if (!nextDate || now > nextDate) {
-        callback(resource);
-        next[name] = new Date(now.getTime() + 1000 * time);
-    }
-}
 
 export default class Endpoint {
   constructor(options) {
@@ -42,12 +32,18 @@ export default class Endpoint {
   }
 
   revalidate(fn, options) {
+    const resource = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+    const properties = { swr: {} };
+    privy.set(resource, Object.assign(properties, privy.get(this)));
     if (!isNaN(options.focus)) {
-      addEventListener('focus', () => validate(this,'focus', fn, options.focus));
+      addEventListener('focus', () => validate(resource,'focus', fn, options.focus));
     }
     if (!isNaN(options.reconnect)) {
-      addEventListener('online', () => validate(this, 'oline', fn, options.reconnect));
+      addEventListener('online', () => validate(resource, 'oline', fn, options.reconnect));
     }
-    return fn(this);
+    if (options.stale) {
+      setStale(resource, fn, options.stale);
+    }
+    return fn(resource);
   }
 }

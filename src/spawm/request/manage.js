@@ -19,43 +19,62 @@ const fn = {};
 
 function solve(xhr, resolve, reject) {
   if (xhr.rd) return location = xhr.u;
-  (xhr.s > 399) ? reject(xhr.r, xhr.s) : resolve(xhr.r, xhr.s);
+  const action = xhr.s > 399 ? reject : resolve;
+  action(xhr.r, {
+    status: xhr.s,
+    swr: xhr.swr
+  });
 }
 
-function execute(key, request, response, resolve, reject) {
+function setCache(request, response, resolve, reject) {
   if (!isNaN(request.c)) {
     response.n = new Date();
-    set(key, response);
+    set(response.id, response);
+  }
+  if (request.r) {
+    request.r = JSON.stringify(response.r);
   }
   solve(response, resolve, reject);
 }
 
-function uuid() {
-  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-  );
+export function execute(worker, request, resolve, reject) {
+  const { id } = request;
+  if (worker) {
+    worker.postMessage(request);
+    fn[id] = ({ data }) => {
+      if (data.id === id) {
+        console.log(request);
+        setCache(request, data, resolve, reject);
+        if (!request.i) {
+          worker.removeEventListener('message', fn[id]);
+          delete fn[id];
+        }
+      }
+    };
+    return worker.addEventListener('message', fn[id]);
+  }
+  sendRequest(request, (res) => setCache(request, res, resolve, reject));
 }
 
 export default function manage(resource, method, data, queryString) {
-  const worker = resource.w;
-  const id = uuid();
-  const request = Object.assign({
-    id,
+  const { w: worker, swr, ...props } = resource;
+  const request = {
     m: method,
     d: data,
-    q: queryString
-  }, resource);
-  delete request.w;
+    q: queryString,
+    u: resource.u
+  };
+  const id = JSON.stringify(request);
+  Object.assign(request, props);
+  request.id = id;
+  if (swr) {
+    swr[id] = request;
+    request.r = '{}';
+  }
   return new Promise((resolve, reject) => {
-    const key = JSON.stringify({
-      m: request.m,
-      d: request.d,
-      q: request.q,
-      u: request.u
-    });
-    const res = get(key);
+    const res = get(id);
     if (
-      request.m === 'GET' && res &&
+      res && request.m === 'GET' &&
       (
         request.c === Infinity ||
         new Date(new Date(res.n).getTime() + 1000 * request.c) > new Date()
@@ -63,17 +82,6 @@ export default function manage(resource, method, data, queryString) {
     ) {
       return solve(res, resolve, reject);
     }
-    if (worker) {
-      worker.postMessage(request);
-      fn[id] = ({ data }) => {
-        if (data.id === id) {
-          execute(key, request, data, resolve, reject);
-          worker.removeEventListener('message', fn[id]);
-          delete fn[id];
-        }
-      };
-      return worker.addEventListener('message', fn[id]);
-    }
-    sendRequest(request, (res) => execute(key, request, res, resolve, reject));
+    execute(worker, request, resolve, reject);
   });
 }

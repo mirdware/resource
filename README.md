@@ -10,13 +10,13 @@ Mediante node se puede instalar con el comando `npm i @spawm/resource` o manualm
 
 Es posible configurar la petición enviando como segundo parámetro del constructor de `Resource` los siguientes datos:
 
-* **headers:** _[{'X-Requested-With': 'XMLHttpRequest'}]_ Las cabeceras que enviara la petición, por defecto solo se envía la cabecera `X-Requested-With`, cabe recordar que una vez agregada una cabecera no es posible eliminarla.
+* **headers:** `[{'X-Requested-With': 'XMLHttpRequest'}]` Las cabeceras que enviara la petición, por defecto solo se envía la cabecera `X-Requested-With`, cabe recordar que una vez agregada una cabecera no es posible eliminarla.
 
-* **redirect:** _true_ si el servidor responde desde una ubicación diferente a la cual fue realizada la petición, el sistema realizara una redirección hacia esta nueva URL.
+* **redirect:** `true` si el servidor responde desde una ubicación diferente a la cual fue realizada la petición, el sistema realizara una redirección hacia esta nueva URL.
 
 * **type:** son los tipos de respuesta que se esperan del servidor según el [responseType](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseType). Si se deja vacío, la librería tratará de parsearlo según las cabeceras de respuesta del servidor.
 
-* **cache:** Valor numérico que indica cuantos segundos dura la respuesta siendo válida antes de volver a hacer una nueva petición, solo funciona en peticiones GET.(:warning: En futuras versiones esta propiedad puede cambiar).
+* **cache:** Valor numérico que indica cuantos segundos dura la respuesta siendo válida antes de volver a hacer una nueva petición, solo funciona en peticiones GET. _:warning: En futuras versiones esta propiedad puede cambiar._
 
 ## Uso
 Para utilizar un recurso basta con crear una instancia nueva de la clase Resource.
@@ -33,9 +33,12 @@ Una vez creado un objeto se pueden invocar sus métodos `get`, `post`, `put`, `d
 class AppResource extends Resource {
   constructor(path) {
     super('http://localhost:8080/' + path, {
-      headerrs:  {
-        Authorization: "Basic YWxhZGRpbjpvcGVuc2VzYW1l"
-      }
+      headers:  {
+        "Authorization": "Basic YWxhZGRpbjpvcGVuc2VzYW1l"
+      },
+      redirect: false,
+      type: "json",
+      cache: 60
     });
   }
 }
@@ -87,3 +90,4 @@ class AppResource extends Resource {
     return reponse;
   }
 }
+```
