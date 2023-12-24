@@ -16,7 +16,7 @@ Es posible configurar la petición enviando como segundo parámetro del construc
 
 * **type:** son los tipos de respuesta que se esperan del servidor según el [responseType](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseType). Si se deja vacío, la librería tratará de parsearlo según las cabeceras de respuesta del servidor.
 
-* **cache:** Valor numérico que indica cuantos segundos dura la respuesta siendo válida antes de volver a hacer una nueva petición, solo funciona en peticiones GET. _:warning: En futuras versiones esta propiedad puede cambiar._
+* **cache:** Valor numérico que indica cuantos segundos dura la respuesta siendo válida antes de volver a hacer una nueva petición, solo funciona en peticiones GET.
 
 ## Uso
 Para utilizar un recurso basta con crear una instancia nueva de la clase Resource.
@@ -75,7 +75,33 @@ resource.add({path: '/comments'}).get({ id: 1 });
 Como podemos observar el método add recibe un objeto como parámetro el cual tiene las propiedades `path`, `headers`, `redirect` y `type`; para los dos primero el nuevo recurso extenderá la propiedad, es decir, concatena la parte del path que hace falta y agregará los headers que se envían, mientras que para los últimos dos directamente reemplazará las propiedades.
 
 ## Revalidate
+
+ _:warning: En futuras versiones este método puede cambiar._
+
 Capítulo aparte merece el método revalidate, el cual permite ejecutar peticiones en diferentes momentos y con diferentes estrategias, esto para tratar de mantener la información lo más actualizada posible haciendo uso de un método de invalidación de caché llamado Stale While Relavidate popularizado por [HTTP RFC 5861](https://datatracker.ietf.org/doc/html/rfc5861).
+
+El método recibe dos parámetros, la función que se ejecuta en cada una de las revalidaciones y un objeto de opciones.
+
+```javascript
+this.revalidate(async (resource) => {
+  const persons = await resource.get();
+  console.log(persons)
+}, {
+  focus: 10,
+  reconnect: 0,
+  stale: 20
+});
+```
+
+Como se puede observar la función recibe como parámetro un resource con el cual se deben realizar las peticiones y las opciones que permite el método son `focus`, `reconnect` y `stale`,
+
+* **focus:** Estima el tiempo en segundos que se debe esperar para revalidar el estado cuando el usuario coloque el foco en la aplicación, es decir, si el usuario coloca el foco y no ha pasado menos del tiempo parametrizado, no se ejecutará la revalidación.
+
+* **reconnect:** Estima el tiempo en segundos que se debe esperar para revalidar el estado una vez la aplicación se ha reconectado.
+
+* **stale:** Estima cada cuantos segundos se debe enviar una petición para revalidar el estado, se debe pensar en esta opción como un [setInterval](https://developer.mozilla.org/en-US/docs/Web/API/setInterval) que realizará un long polling al servidor.
+
+Si el estado ha cambiado teniendo en cuenta las condiciones establecidas por el objeto de parametrización, se ejecutará la función enviada como primer parámetro.
 
 ## Evitando los interceptores
 Otra funcionalidad de la programación orientada a objetos que podemos usar es el polimorfismo, lo cual nos permite modificar peticiones o respuestas; tareas delegadas en la mayoría de casos a interceptores.

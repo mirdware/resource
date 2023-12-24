@@ -1,6 +1,6 @@
 import Endpoint from "./endpoint";
 import { sendRequest } from "./request/sandbox";
-import { privy } from "./cache";
+import { privy } from "./endpoint";
 
 /**
  *
@@ -15,6 +15,7 @@ import { privy } from "./cache";
  * @var {c} cache
  * @var {w} worker
  */
+
 export default class Resource extends Endpoint {
   constructor(u, options) {
     options = options || {};

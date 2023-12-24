@@ -1,10 +1,10 @@
 import { execute } from "./manage";
-import { privy } from "../cache";
+import { privy } from "../endpoint";
 
 const next = {};
 const stale = {};
 
-export function setStale(resource, callback, staleTime) {
+export function setStale(resource, callback, time) {
   const { swr, w: worker} = privy.get(resource);
   let totalRequests = 0;
   let successRequests = 0;
@@ -13,16 +13,18 @@ export function setStale(resource, callback, staleTime) {
       if (swr[key].r !== '{}') {
         ++successRequests;
         if (!stale[key]) {
-          stale[key] = Object.assign({ i: staleTime }, swr[key]);
-          execute(worker, stale[key], () => callback(resource), () => {});
+          stale[key] = Object.assign({ i: time }, swr[key]);
+          execute(worker, stale[key], () => {
+            callback(resource);
+          }, () => {});
         }
       }
       ++totalRequests;
     }
     if (totalRequests !== successRequests) {
-      setStale(resource, callback, staleTime);
+      setStale(resource, callback, time);
     }
-  }, staleTime * 1000);
+  }, time * 1000);
 }
 
 export function validate(resource, name, callback, time) {
@@ -37,7 +39,7 @@ export function validate(resource, name, callback, time) {
           i--;
           if (!meta.swr) willExecuted = true;
           if (!i && willExecuted) callback(resource);
-        }, () => i--);
+        }, () => { i-- });
         i++;
       }
       next[name] = new Date(now.getTime() + 1000 * time);

@@ -1,5 +1,4 @@
 import { sendRequest } from "./sandbox";
-import { set, get } from "../cache";
 
 /**
  *
@@ -16,6 +15,7 @@ import { set, get } from "../cache";
  * @var {w} worker
  */
 const fn = {};
+const cache = {};
 
 function solve(xhr, resolve, reject) {
   if (xhr.rd) return location = xhr.u;
@@ -29,7 +29,7 @@ function solve(xhr, resolve, reject) {
 function setCache(request, response, resolve, reject) {
   if (!isNaN(request.c)) {
     response.n = new Date();
-    set(response.id, response);
+    cache[response.id] = JSON.stringify(response);
   }
   if (request.r) {
     request.r = JSON.stringify(response.r);
@@ -43,7 +43,6 @@ export function execute(worker, request, resolve, reject) {
     worker.postMessage(request);
     fn[id] = ({ data }) => {
       if (data.id === id) {
-        console.log(request);
         setCache(request, data, resolve, reject);
         if (!request.i) {
           worker.removeEventListener('message', fn[id]);
@@ -53,7 +52,9 @@ export function execute(worker, request, resolve, reject) {
     };
     return worker.addEventListener('message', fn[id]);
   }
-  sendRequest(request, (res) => setCache(request, res, resolve, reject));
+  sendRequest(request, (res) => {
+    setCache(request, res, resolve, reject);
+  });
 }
 
 export default function manage(resource, method, data, queryString) {
@@ -72,7 +73,7 @@ export default function manage(resource, method, data, queryString) {
     request.r = '{}';
   }
   return new Promise((resolve, reject) => {
-    const res = get(id);
+    const res = cache[id] ? JSON.parse(cache[id]) : null;
     if (
       res && request.m === 'GET' &&
       (

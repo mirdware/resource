@@ -29,7 +29,7 @@ class Photo extends Resource {
 
 class Credit extends Resource {
     constructor () {
-        super('http://localhost:8080/test/', {cache: Infinity});
+        super('http://localhost:8000/test/', {cache: Infinity});
     }
 
     async revalidate() {
