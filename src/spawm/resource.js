@@ -37,12 +37,14 @@ export default class Resource extends Endpoint {
     });
   }
 
-  add(options) {
-    const properties = Object.assign({}, privy.get(this));
-    options.path && (properties.u += options.path);
-    options.redirect && (properties.rd = options.redirect);
-    options.type && (properties.t = options.type);
-    options.header && Object.assign(properties.h, options.header);
-    return new Endpoint(properties);
+  add(url, options) {
+    const properties = privy.get(this);
+    return new Endpoint({
+      u: properties.u + url,
+      h: Object.assign({}, properties.h, options.header ?? {}),
+      rd: options.redirect ?? properties.rd,
+      c: options.cache ?? properties.c,
+      type: options.type ?? propperties.t
+    });
   }
 }

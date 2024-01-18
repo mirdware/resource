@@ -11,7 +11,7 @@ class Post extends Resource {
     async getDetail(id) {
         const response = await Promise.all([
             this.get({ id }),
-            this.add({path: '/comments'}).get({ id }),
+            this.add('/comments').get({ id }),
         ]);
         const detail = response[0];
         detail.comments = response[1];

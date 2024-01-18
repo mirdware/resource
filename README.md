@@ -1,7 +1,7 @@
 # @spawm/resource
-La idea detrás de este proyecto es generar peticiones hacia un servicio RESTful de manera natural. Los recursos son el bloque de compilación básico de creación de un servicio RESTful.
+La idea detrás de este proyecto es generar peticiones hacia un servicio RESTful de manera natural. El nombre de la librería esta dado porque los recursos son el bloque de compilación básico para la creación de un servicio RESTful.
 
-Los recursos los direccionan los URL y los métodos HTTP pueden llevar a cabo operaciones en recursos. Los recursos pueden tener diversas representaciones que utilicen distintos formatos como, por ejemplo, XML y JSON. Puede utilizar cabeceras y parámetros HTTP para pasar información adicional que sea relevante para la solicitud y la respuesta.
+Los recursos los direccionan las URL y los métodos HTTP pueden llevar a cabo operaciones en recursos. Los recursos pueden tener diversas representaciones que utilicen distintos formatos como, por ejemplo, XML y JSON. Puede utilizar cabeceras y parámetros HTTP para pasar información adicional que sea relevante para la solicitud y la respuesta.
 
 ## Instalación
 Mediante node se puede instalar con el comando `npm i @spawm/resource` o manualmente haciendo uso del [CDN](https://unpkg.com/@spawm/resource).
@@ -60,7 +60,7 @@ Si se cuenta con un sistema de inversión de control, es posible incluir la clas
 
 * **send:** El método `send` envía cualquier tipo de petición al servidor, podemos pensar en los anteriores métodos como alias de este. Recibe tres parámetros, el primero es un string con el nombre del método por el cual se envía la petición, el segundo el objeto que se enviara en el cuerpo de la petición y el último el query string, igualmente como objeto javascript.
 
-* **add:** El método `add` no envía peticiones al servidor, su función es crear un nuevo recurso sobreescribiendo las propiedades del recurso que llama el método; el nuevo recurso no puede volver a llamar al método add. Por ejemplo un recurso `/posts/1` podría tener una URL `/posts/1/comments` donde se listan los comentarios del post, para esta situación tendríamos el siguiente caso:
+* **add:** El método `add` no envía peticiones al servidor, su función es crear un nuevo recurso sobreescribiendo las propiedades de quien llama el método; el nuevo recurso **no** puede volver a llamar al método add. Por ejemplo un recurso `/posts/1` podría tener una URL `/posts/1/comments` donde se listan los comentarios del post, para esta situación tendríamos el siguiente caso:
 
 ```javascript
 const Resource = new Resource('/posts/{id}');
@@ -69,10 +69,10 @@ resource.get().then(res => console.log(res));
 //carga solo el recurso 1
 resource.get({ id: 1 }).then(res => console.log(res));
 //carga los comentarios del recurso 1
-resource.add({path: '/comments'}).get({ id: 1 });
+resource.add('/comments').get({ id: 1 });
 ```
 
-Como podemos observar el método add recibe un objeto como parámetro el cual tiene las propiedades `path`, `headers`, `redirect` y `type`; para los dos primero el nuevo recurso extenderá la propiedad, es decir, concatena la parte del path que hace falta y agregará los headers que se envían, mientras que para los últimos dos directamente reemplazará las propiedades.
+El método add recibe dos parametros, el primero es la url a añadir al recurso y el segundo un objeto el cual tiene las propiedades: `headers`, `redirect`, `cache` y `type`; en el caso de la primera propiedad lo que se envíe se agregara a los headers ya existentes, mientras que para el resto se sobreescribira en caso de ya existir.
 
 ## Revalidate
 
