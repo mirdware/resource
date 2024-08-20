@@ -1,4 +1,5 @@
 import manage from "./request/manage";
+import { sendRequest } from "./request/sandbox";
 import { setStale, validate } from "./request/validate";
 
 export const privy = new WeakMap();
@@ -33,21 +34,40 @@ export default class Endpoint {
   }
 
   revalidate(fn, options) {
+    let fnFocus, fnConnect, fnStop;
+    const priv = privy.get(this);
+    const { focus, reconnect, stale } = options;
     const resource = Object.create(Object.getPrototypeOf(this));
-    privy.set(resource, Object.assign({swr: {}}, privy.get(this)));
-    if (!isNaN(options.focus)) {
-      addEventListener('focus', () => {
-        validate(resource,'focus', fn, options.focus);
-      });
+    privy.set(resource, Object.assign({swr: {}}, priv));
+    resource.stop = function () {
+      fnFocus && removeEventListener('focus', fnFocus);
+      fnConnect && removeEventListener('online', fnConnect);
+      if (stale) {
+        fnStop();
+        if (priv.w) {
+          priv.w = new Worker(URL.createObjectURL(
+            new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}'])
+          ))
+        }
+      }
     }
-    if (!isNaN(options.reconnect)) {
-      addEventListener('online', () => {
-        validate(resource, 'oline', fn, options.reconnect);
-      });
+    if (!isNaN(focus)) {
+      fnFocus = function () {
+        validate(resource, 'focus', fn, focus);
+      };
+      addEventListener('focus', fnFocus);
     }
-    if (options.stale) {
-      setStale(resource, fn, options.stale);
+    if (!isNaN(reconnect)) {
+      fnConnect = function () {
+        validate(resource, 'oline', fn, reconnect);
+      };
+      addEventListener('online', fnConnect);
     }
-    return fn(resource);
+    fn(resource).then(() => {
+      if (stale) {
+        fnStop = setStale(resource, fn, stale)
+      }
+    });
+    return resource;
   }
 }

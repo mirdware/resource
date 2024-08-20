@@ -16,6 +16,7 @@ import { sendRequest } from "./sandbox";
  */
 const fn = {};
 const cache = {};
+const intervals = {};
 
 function solve(xhr, resolve, reject) {
   if (xhr.rd) return location = xhr.u;
@@ -37,6 +38,13 @@ function setCache(request, response, resolve, reject) {
   solve(response, resolve, reject);
 }
 
+export function stop(id) {
+  if (intervals[id]) {
+    clearInterval(intervals[id]);
+    delete intervals[id];
+  }
+}
+
 export function execute(worker, request, resolve, reject) {
   const { id } = request;
   if (worker) {
@@ -52,9 +60,12 @@ export function execute(worker, request, resolve, reject) {
     };
     return worker.addEventListener('message', fn[id]);
   }
-  sendRequest(request, (res) => {
+  const res = sendRequest(request, (res) => {
     setCache(request, res, resolve, reject);
   });
+  if (res) {
+    intervals[id] = res;
+  }
 }
 
 export default function manage(resource, method, data, queryString) {

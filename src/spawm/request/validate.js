@@ -1,30 +1,24 @@
-import { execute } from "./manage";
+import { execute, stop } from "./manage";
 import { privy } from "../endpoint";
 
 const next = {};
 const stale = {};
 
 export function setStale(resource, callback, time) {
-  const { swr, w: worker} = privy.get(resource);
-  let totalRequests = 0;
-  let successRequests = 0;
-  setTimeout(() => {
-    for (const key in swr) {
-      if (swr[key].r !== '{}') {
-        ++successRequests;
-        if (!stale[key]) {
-          stale[key] = Object.assign({ i: time }, swr[key]);
-          execute(worker, stale[key], () => {
-            callback(resource);
-          }, () => {});
-        }
-      }
-      ++totalRequests;
+  const { swr, w: worker } = privy.get(resource);
+  for (const key in swr) {
+    stale[key] = Object.assign({ i: time }, swr[key]);
+    execute(worker, stale[key], () => {
+      callback(resource);
+    }, () => {});
+  }
+  return () => {
+    if (worker) {
+      worker.terminate();
+    } else {
+      Object.keys(swr).forEach((key) => stop(key));
     }
-    if (totalRequests !== successRequests) {
-      setStale(resource, callback, time);
-    }
-  }, time * 1000);
+  }
 }
 
 export function validate(resource, name, callback, time) {

@@ -72,19 +72,14 @@ export function sendRequest(request, callback) {
     };
   }
 
-  function validate() {
-    send((res) =>{
-      if (!res.swr) {
-        callback(res);
-        request.r = JSON.stringify(res.r);
-      }
-    });
-  }
-
   if (request.i) {
-    validate();
     return setInterval(() => {
-      validate();
+      send((res) => {
+        if (!res.swr) {
+          callback(res);
+          request.r = JSON.stringify(res.r);
+        }
+      });
     }, request.i * 1000);
   }
   send(callback);

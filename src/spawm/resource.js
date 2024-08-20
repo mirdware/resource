@@ -1,6 +1,6 @@
 import Endpoint from "./endpoint";
-import { sendRequest } from "./request/sandbox";
 import { privy } from "./endpoint";
+import { sendRequest } from "./request/sandbox";
 
 /**
  *
@@ -17,17 +17,13 @@ import { privy } from "./endpoint";
  */
 
 export default class Resource extends Endpoint {
-  constructor(u, options) {
+  constructor(url, options) {
     options = options || {};
-    let w;
-    if (Worker){
-      w = new Worker(URL.createObjectURL(
-        new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}'])
-      ));
-    }
     super({
-      w,
-      u,
+      u: url,
+      w: Worker ? new Worker(URL.createObjectURL(
+        new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}'])
+      )) : null,
       rd: options.redirect ?? true,
       t: options.type ?? '',
       c: options.cache,
@@ -39,12 +35,13 @@ export default class Resource extends Endpoint {
 
   add(url, options) {
     const properties = privy.get(this);
+    options = options || {};
     return new Endpoint({
       u: properties.u + url,
-      h: Object.assign({}, properties.h, options.header ?? {}),
+      h: Object.assign({}, properties.h, options.headers ?? {}),
       rd: options.redirect ?? properties.rd,
       c: options.cache ?? properties.c,
-      type: options.type ?? propperties.t
+      t: options.type ?? properties.t
     });
   }
 }

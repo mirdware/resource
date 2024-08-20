@@ -32,8 +32,8 @@ class Credit extends Resource {
         super('http://localhost:8000/test/', {cache: Infinity});
     }
 
-    async revalidate() {
-        await super.revalidate(async (resource) => {
+    revalidate() {
+        this.swr = super.revalidate(async (resource) => {
             const persons = await resource.get();
             const fragment = document.createDocumentFragment();
             persons.splice(0 , 30).forEach((person) => {
@@ -73,6 +73,7 @@ const file = new Resource(location.origin + '/response.json', {type: 'blob'});
 
 async function showDetail(e) {
     e.preventDefault();
+    credits.swr.stop();
     document.querySelector('.overlay').style.display = 'block';
     const { id } = e.target.dataset;
     const [detail, image] = await Promise.all([
