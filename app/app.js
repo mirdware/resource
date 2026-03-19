@@ -11,7 +11,7 @@ class Post extends Resource {
     async getDetail(id) {
         const response = await Promise.all([
             this.get({ id }),
-            this.add({path: '/comments'}).get({ id }),
+            this.add('/comments').get({ id }),
         ]);
         const detail = response[0];
         detail.comments = response[1];
@@ -29,24 +29,7 @@ class Photo extends Resource {
 
 class Credit extends Resource {
     constructor () {
-        super('http://localhost:8080/test/', {cache: Infinity});
-    }
-
-    async revalidate() {
-        await super.revalidate(async (resource) => {
-            const persons = await resource.get();
-            const fragment = document.createDocumentFragment();
-            persons.splice(0 , 30).forEach((person) => {
-                const li = document.createElement('li');
-                const text = document.createTextNode(person.name.first + ' ' + person.name.last);
-                li.appendChild(text);
-                fragment.appendChild(li);
-            });
-            document.getElementById('credits').replaceChildren(fragment);
-        }, {
-            focus: 10,
-            stale: 20
-        });
+        super('http://localhost:8000/test/', {cache: Infinity});
     }
 }
 
@@ -109,12 +92,27 @@ async function showDetail(e) {
     img.addEventListener('load', () => {
         document.querySelector('.return').style.display = 'block';
         document.querySelector('.overlay').style.display = 'none';
-    })
+    });
+}
+
+function loadAuthors(persons) {
+    const fragment = document.createDocumentFragment();
+    persons.splice(0 , 30).forEach((person) => {
+        const li = document.createElement('li');
+        const text = document.createTextNode(person.name.first + ' ' + person.name.last);
+        li.appendChild(text);
+        fragment.appendChild(li);
+    });
+    document.getElementById('credits').replaceChildren(fragment);
 }
 
 async function showMain() {
     const footer = new Resource(location.origin + '/footer.html', {cache: Infinity});
-    const res = await Promise.all([post.get(), footer.get(), credits.revalidate()]);
+    const res = await Promise.all([post.get(), footer.get(), credits.get(null, {
+        focus: 5,
+        stale: 20,
+        onUpdate: loadAuthors
+    })]);
     const fragment = document.createDocumentFragment();
     const ul = document.createElement('ul');
     res[0].splice(0 , 30).forEach((todo) => {
@@ -133,6 +131,7 @@ async function showMain() {
     document.getElementById('main').replaceChildren(ul);
     document.querySelector('.overlay').style.display = 'none';
     document.querySelector('footer').innerHTML = res[1];
+    loadAuthors(res[2]);
 }
 
 showMain();

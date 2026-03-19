@@ -1,45 +1,39 @@
 import { execute } from "./manage";
-import { privy } from "../cache";
 
-const next = {};
-const stale = {};
+const registry = new Map();
+const throttles = new Map();
 
-export function setStale(resource, callback, staleTime) {
-  const { swr, w: worker} = privy.get(resource);
-  let totalRequests = 0;
-  let successRequests = 0;
-  setTimeout(() => {
-    for (const key in swr) {
-      if (swr[key].r !== '{}') {
-        ++successRequests;
-        if (!stale[key]) {
-          stale[key] = Object.assign({ i: staleTime }, swr[key]);
-          execute(worker, stale[key], () => callback(resource), () => {});
-        }
-      }
-      ++totalRequests;
-    }
-    if (totalRequests !== successRequests) {
-      setStale(resource, callback, staleTime);
-    }
-  }, staleTime * 1000);
+if (typeof window !== 'undefined') {
+  window.addEventListener('focus', () => run('focus'));
+  window.addEventListener('online', () => run('reconnect'));
 }
 
-export function validate(resource, name, callback, time) {
-    const now = new Date();
-    const nextDate = next[name];
-    if (!nextDate || now > nextDate) {
-      const { w: worker, swr } = privy.get(resource);
-      let willExecuted = false;
-      let i = 0;
-      for (const key in swr) {
-        execute(worker, swr[key], (_, meta) => {
-          i--;
-          if (!meta.swr) willExecuted = true;
-          if (!i && willExecuted) callback(resource);
-        }, () => i--);
-        i++;
+export function subscribe(id, data) {
+  if (data.swr.stale) {
+    const newRequest = Object.assign({ i: data.swr.stale }, data.r);
+    newRequest.id = 'i' + newRequest.id;
+    execute(data.w, newRequest, null, null, data.swr);
+  }
+  registry.set(id, data);
+}
+
+export function unsubscribe(id) {
+  registry.delete(id);
+  throttles.delete(id + 'focus');
+  throttles.delete(id + 'reconnect');
+}
+
+function run(type) {
+  const now = Date.now();
+  registry.forEach((entry, id) => {
+    const time = entry.swr[type === 'focus' ? 'focus' : 'reconnect'];
+    if (typeof time === 'number') {
+      const throttleKey = id + type;
+      const nextExecution = throttles.get(throttleKey) || 0;
+      if (now > nextExecution) {
+        execute(entry.w, entry.r, null, null, entry.swr);
+        throttles.set(throttleKey, now + (time * 1000));
       }
-      next[name] = new Date(now.getTime() + 1000 * time);
     }
+  });
 }

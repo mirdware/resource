@@ -1,5 +1,4 @@
 import manage from "./request/manage";
-import { setStale, validate } from "./request/validate";
 import { privy } from "./cache";
 
 export default class Endpoint {
@@ -7,43 +6,29 @@ export default class Endpoint {
     privy.set(this, options);
   }
 
-  get(queryString) {
-    return this.send('GET', null, queryString);
+  get(query, swr) {
+    return this.send('GET', null, query, swr);
   }
 
-  post(dataBody, queryString) {
-    return this.send('POST', dataBody, queryString)
+  post(body, query) {
+    return this.send('POST', body, query)
   }
 
-  put(dataBody, queryString) {
-    return this.send('PUT', dataBody, queryString);
+  put(body, query) {
+    return this.send('PUT', body, query);
   }
 
-  delete(queryString) {
-    return this.send('DELETE', null, queryString);
+  delete(query) {
+    return this.send('DELETE', null, query);
   }
 
-  patch(dataBody, queryString) {
-    return this.send('PATCH', dataBody, queryString);
+  patch(body, query) {
+    return this.send('PATCH', body, query);
   }
 
-  send(method, dataBody, queryString) {
-    return manage(privy.get(this), method, dataBody, queryString);
-  }
-
-  revalidate(fn, options) {
-    const resource = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
-    const properties = { swr: {} };
-    privy.set(resource, Object.assign(properties, privy.get(this)));
-    if (!isNaN(options.focus)) {
-      addEventListener('focus', () => validate(resource,'focus', fn, options.focus));
-    }
-    if (!isNaN(options.reconnect)) {
-      addEventListener('online', () => validate(resource, 'oline', fn, options.reconnect));
-    }
-    if (options.stale) {
-      setStale(resource, fn, options.stale);
-    }
-    return fn(resource);
+  send(method, body, query, swr) {
+    const options = Object.assign({}, privy.get(this));
+    options.swr = swr === null ? null : Object.assign({}, options.swr, swr);
+    return manage(options, method, body, query);
   }
 }

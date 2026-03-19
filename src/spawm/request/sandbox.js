@@ -1,5 +1,6 @@
 /**
  *
+ * @var {a} abort
  * @var {m} method
  * @var {d} data
  * @var {q} queryString
@@ -11,6 +12,10 @@
  * @var {s} status
  */
 export function sendRequest(request, callback) {
+  const { id } = request;
+  self.activeXHR = self.activeXHR || {};
+  self.intervals = self.intervals || {};
+
   function serialize(data) {
     const formData = new FormData();
     for (const key in data) {
@@ -20,7 +25,7 @@ export function sendRequest(request, callback) {
   }
 
   function formatQueryString(sign, data) {
-    const variables = []
+    const variables = [];
     for (const key in data) {
       variables.push(encodeURIComponent(key) + '=' + encodeURIComponent(data[key]));
     }
@@ -41,7 +46,9 @@ export function sendRequest(request, callback) {
   function send(fn) {
     const headers = request.h;
     const xhr = new XMLHttpRequest();
-    const url = formatURL(request.u, request.q) + formatQueryString(request.u.indexOf('?') === -1 ? '?' : '&', request.q);
+    const query = Object.assign({}, request.q);
+    const url = formatURL(request.u, query) + formatQueryString(request.u.indexOf('?') === -1 ? '?' : '&', query);
+    self.activeXHR[id] = xhr;
     xhr.open(request.m, url, true);
     for (const header in headers) {
       xhr.setRequestHeader(header, headers[header]);
@@ -53,6 +60,7 @@ export function sendRequest(request, callback) {
         const content = xhr.getResponseHeader('Content-Type');
         const { responseURL } = xhr;
         let { response } = xhr;
+        delete self.activeXHR[id];
         if (!request.t && content) {
           if (content.indexOf('application/json') !== -1) {
             response = JSON.parse(response);
@@ -61,31 +69,36 @@ export function sendRequest(request, callback) {
           }
         }
         fn({
-          id: request.id,
+          id,
           r: response,
           u: responseURL,
           s: xhr.status,
           rd: request.rd && responseURL && responseURL !== url,
-          swr: JSON.stringify(response) === request.r 
+          swr: JSON.stringify(response) === request.r.v
         });
       }
     };
   }
 
-  function validate() {
-    send((res) =>{
-      if (!res.swr) {
-        callback(res);
-        request.r = JSON.stringify(res.r);
-      }
-    });
+  if (request.a) {
+    if (self.activeXHR[id]) {
+      self.activeXHR[id].abort();
+      delete self.activeXHR[id];
+    }
+    if (self.intervals[id]) {
+      clearInterval(self.intervals[id]);
+      delete self.intervals[id];
+    }
+  } else {
+    if (typeof request.i === 'number' && !self.intervals[id]) {
+      self.intervals[id] = setInterval(() => send((res) => {
+        if (!res.swr) {
+          callback(res);
+          request.r.v = JSON.stringify(res.r);
+        }
+      }), request.i * 1000);
+    } else {
+      send(callback);
+    }
   }
-
-  if (request.i) {
-    validate();
-    return setInterval(() => {
-      validate();
-    }, request.i * 1000);
-  }
-  send(callback);
 }

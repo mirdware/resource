@@ -29,6 +29,7 @@ export default class Resource extends Endpoint {
       u,
       rd: options.redirect ?? true,
       t: options.type ?? '',
+      swr: options.swr,
       c: options.cache,
       h: Object.assign({
         'X-Requested-With': 'XMLHttpRequest'
@@ -36,12 +37,21 @@ export default class Resource extends Endpoint {
     });
   }
 
-  add(options) {
-    const properties = Object.assign({}, privy.get(this));
-    options.path && (properties.u += options.path);
-    options.redirect && (properties.rd = options.redirect);
-    options.type && (properties.t = options.type);
-    options.header && Object.assign(properties.h, options.header);
+  add(path, options) {
+    const parent = privy.get(this);
+    const properties = Object.assign({}, parent, {
+      h: Object.assign({}, parent.h),
+      u: parent.u + path
+    });
+    if (options) {
+      const props = { redirect: 'rd', type: 't', cache: 'c', swr: 'swr' };
+      for (const key in props) {
+        if (options[key] !== undefined) {
+          properties[props[key]] = options[key];
+        }
+      }
+      Object.assign(properties.h, options.headers || {});
+    }
     return new Endpoint(properties);
   }
 }

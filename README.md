@@ -16,7 +16,7 @@ Es posible configurar la petición enviando como segundo parámetro del construc
 
 * **type:** son los tipos de respuesta que se esperan del servidor según el [responseType](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseType). Si se deja vacío, la librería tratará de parsearlo según las cabeceras de respuesta del servidor.
 
-* **cache:** Valor numérico que indica cuantos segundos dura la respuesta siendo válida antes de volver a hacer una nueva petición, solo funciona en peticiones GET. _:warning: En futuras versiones esta propiedad puede cambiar._
+* **cache:** Valor numérico que indica cuantos segundos dura la respuesta siendo válida antes de volver a hacer una nueva petición, solo funciona en peticiones GET.
 
 ## Uso
 Para utilizar un recurso basta con crear una instancia nueva de la clase Resource.
@@ -38,6 +38,11 @@ class AppResource extends Resource {
       },
       redirect: false,
       type: "json",
+      swr: {
+        focus: 5,
+        reconnect: 5,
+        stale: 30,
+      },
       cache: 60
     });
   }
@@ -48,7 +53,7 @@ Si se cuenta con un sistema de inversión de control, es posible incluir la clas
 
 ## Métodos
 
-* **get:** El método `get` solicita una representación de un recurso específico. Las peticiones que usan el método GET solo deben recuperar datos. Solo acepta como parámetro un objeto que convertirá en el query string.
+* **get:** El método `get` solicita una representación de un recurso específico. Las peticiones que usan el método GET solo deben recuperar datos. Acepta dos parámetros, el primero un objeto que convertirá en el query string y el segundo la parametrización del swr (opcional).
 
 * **post:** El método `post` se utiliza para enviar una entidad a un recurso en específico, causando a menudo un cambio en el estado o efectos secundarios en el servidor. Recibe dos objetos como parámetros, el primero es el que se enviara dentro del cuerpo del mensaje y el segundo opcional un query string.
 
@@ -69,13 +74,52 @@ resource.get().then(res => console.log(res));
 //carga solo el recurso 1
 resource.get({ id: 1 }).then(res => console.log(res));
 //carga los comentarios del recurso 1
-resource.add({path: '/comments'}).get({ id: 1 });
+resource.add('/comments').get({ id: 1 });
 ```
 
-Como podemos observar el método add recibe un objeto como parámetro el cual tiene las propiedades `path`, `headers`, `redirect` y `type`; para los dos primero el nuevo recurso extenderá la propiedad, es decir, concatena la parte del path que hace falta y agregará los headers que se envían, mientras que para los últimos dos directamente reemplazará las propiedades.
+El método add recibe el path como primer parámetro y un objeto como segundo parámetro el cual tiene las propiedades `headers`, `redirect` y `type`; para headers el nuevo recurso extenderá la propiedad, es decir, agregará los headers que se envían, mientras que para los últimos dos directamente reemplazará las propiedades.
 
 ## Revalidate
 Capítulo aparte merece el método revalidate, el cual permite ejecutar peticiones en diferentes momentos y con diferentes estrategias, esto para tratar de mantener la información lo más actualizada posible haciendo uso de un método de invalidación de caché llamado Stale While Relavidate popularizado por [HTTP RFC 5861](https://datatracker.ietf.org/doc/html/rfc5861).
+
+El sistema de revalidación (swr) recibe un objeto bien sea por constructor o mediante el método get, el objeto acepta las propiedades: `focus`, `reconnect`, `stale` y `onUpdate`. Esta última es la función a ejecutar cuando se refresca un dato.
+
+```javascript
+function loadAuthors(persons) {
+  const fragment = document.createDocumentFragment();
+  persons.splice(0 , 30).forEach((person) => {
+    const li = document.createElement('li');
+    const text = document.createTextNode(person.name.first + ' ' + person.name.last);
+    li.appendChild(text);
+    fragment.appendChild(li);
+  });
+  document.getElementById('credits').replaceChildren(fragment);
+}
+
+const authors = await credits.get(null, {
+  focus: 5,
+  stale: 20,
+  onUpdate: loadAuthors
+});
+
+loadAuthors(authors);
+```
+
+Si se pasa null como segundo parámetro del método get se anulara cualquier configuración creada mediante el constructor, igual se pueden invalidar cada una de las propiedades nulificándola.
+
+## Abort
+Todas las promesas devueltas por los métodos de petición cuentan con un método .abort(). Al invocarlo, se cancelará la petición de red en curso y se detendrán los ciclos de revalidación (stale) asociados en el Web Worker.
+
+```javascript
+const request = user.get({ id: 1 }, { stale: 10 });
+// Si el usuario sale de la vista o cancela la acción:
+request.abort();
+try {
+  const data = await request;
+} catch (err) {
+  // Manejo de la cancelación
+}
+```
 
 ## Evitando los interceptores
 Otra funcionalidad de la programación orientada a objetos que podemos usar es el polimorfismo, lo cual nos permite modificar peticiones o respuestas; tareas delegadas en la mayoría de casos a interceptores.
@@ -87,7 +131,7 @@ class AppResource extends Resource {
   async send(method, body, query) {
     const response = await super.send(method, body, query);
     response.at = new Date();
-    return reponse;
+    return response;
   }
 }
 ```
