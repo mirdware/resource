@@ -79,10 +79,14 @@ resource.add('/comments').get({ id: 1 });
 
 El método add recibe dos parametros, el primero es la url a añadir al recurso y el segundo un objeto el cual tiene las propiedades: `headers`, `redirect`, `cache` y `type`; en el caso de la primera propiedad lo que se envíe se agregara a los headers ya existentes, mientras que para el resto se sobreescribira en caso de ya existir.
 
+## Concurrencia y Deduplicación
+Para optimizar el rendimiento y evitar el uso innecesario de red, la librería implementa **Deduplicación Automática de Peticiones en Vuelo (In-flight)**.
+
+Si se realizan múltiples llamadas idénticas (mismo método, URL, headers y cuerpo) antes de que la primera haya finalizado, la librería no disparará nuevas peticiones de red. En su lugar, todas las promesas se "acoplarán" a la primera petición y se resolverán simultáneamente cuando esta termine.
+
+Esta característica es especialmente útil en arquitecturas de microservicios o interfaces complejas donde varios componentes necesitan los mismos datos al inicializarse.
+
 ## Revalidate
-
- _:warning: En futuras versiones este método puede cambiar._
-
 Capítulo aparte merece el método revalidate, el cual permite ejecutar peticiones en diferentes momentos y con diferentes estrategias, esto para tratar de mantener la información lo más actualizada posible haciendo uso de un método de invalidación de caché llamado Stale While Relavidate popularizado por [HTTP RFC 5861](https://datatracker.ietf.org/doc/html/rfc5861).
 
 El sistema de revalidación (swr) recibe un objeto bien sea por constructor o mediante el método get, el objeto acepta las propiedades: `focus`, `reconnect`, `stale` y `onUpdate`. Esta última es la función a ejecutar cuando se refresca un dato.
@@ -110,18 +114,20 @@ loadAuthors(authors);
 
 Si se pasa null como segundo parámetro del método get se anulara cualquier configuración creada mediante el constructor, igual se pueden invalidar cada una de las propiedades nulificándola.
 
+> **Nota:** Las revalidaciones automáticas (focus, reconnect, stale) también pasan por el sistema de deduplicación. Si una revalidación está en curso, cualquier petición manual al mismo recurso esperará a dicha actualización en lugar de crear ruido en la red.
+
 ## Abort
-Todas las promesas devueltas por los métodos de petición cuentan con un método .abort(). Al invocarlo, se cancelará la petición de red en curso y se detendrán los ciclos de revalidación (stale) asociados en el Web Worker.
+Todas las promesas devueltas por los métodos de petición cuentan con un método `.abort()`. Al invocarlo, se cancelará la petición de red en curso y se detendrán los ciclos de revalidación (stale) asociados en el Web Worker.
+
+* **Cancelación Selectiva:** Si múltiples partes de tu aplicación están esperando la misma petición (deduplicación), invocar `.abort()` en una de ellas solo desconectará a ese observador.
+* **Cancelación Física:** La petición de red solo se cancelará físicamente (y se detendrán los ciclos de revalidación en el Worker) cuando **todos** los interesados hayan llamado a `.abort()`.
 
 ```javascript
-const request = user.get({ id: 1 }, { stale: 10 });
-// Si el usuario sale de la vista o cancela la acción:
-request.abort();
-try {
-  const data = await request;
-} catch (err) {
-  // Manejo de la cancelación
-}
+const req1 = user.get({ id: 1 });
+const req2 = user.get({ id: 1 }); // Esta no genera una nueva petición de red
+
+req1.abort(); // La petición física sigue viva porque req2 aún la necesita.
+req2.abort(); // Ahora que no hay interesados, la petición se cancela en el Worker/Navegador.
 ```
 
 ## Evitando los interceptores

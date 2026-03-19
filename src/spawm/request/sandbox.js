@@ -17,6 +17,9 @@ export function sendRequest(request, callback) {
   self.intervals = self.intervals || {};
 
   function serialize(data) {
+    if (!data || [Blob, ArrayBuffer, FormData, URLSearchParams].some(cls => data instanceof cls)) {
+      return data;
+    }
     const formData = new FormData();
     for (const key in data) {
       formData.append(key, data[key]);

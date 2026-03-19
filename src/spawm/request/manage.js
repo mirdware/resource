@@ -17,6 +17,7 @@ import { subscribe, unsubscribe } from './validate';
  * @var {w} worker
  */
 const fn = {};
+const inFlight = new Map();
 
 function solve(xhr, resolve, reject) {
   if (xhr.rd) return location = xhr.u;
@@ -48,7 +49,17 @@ function hash(str) {
 
 export function execute(worker, request, resolve, reject, swr) {
   const { id } = request;
-  const callback = (res) => setCache(request, res, resolve, reject, swr);
+  if (inFlight.has(id)) {
+    return inFlight.get(id).push({ resolve, reject });
+  }
+  inFlight.set(id, [{ resolve, reject }]);
+  const callback = (res) => {
+    const observers = inFlight.get(id) || [];
+    inFlight.delete(id);
+    observers.forEach(
+      observer => setCache(request, res, observer.resolve, observer.reject, swr)
+    );
+  };
   if (worker) {
     worker.postMessage(request);
     fn[id] = ({ data }) => {
@@ -96,6 +107,12 @@ export default function manage(resource, method, data, query) {
     execute(worker, request, resolve, reject, swr);
   });
   promise.abort = () => {
+     const observers = inFlight.get(id);
+    if (observers) {
+        const index = observers.findIndex(o => o.resolve === resolve);
+        if (index !== -1) observers.splice(index, 1);
+        if (observers.length > 0) return;
+    }
     const iid = 'i' + id;
     unsubscribe(id);
     if (worker) {

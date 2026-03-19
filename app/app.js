@@ -47,15 +47,17 @@ function downloadBlob(blob, name = 'file.txt') {
       })
     );
     document.body.removeChild(link);
-  }
+}
 
 const post = new Post();
 const photo = new Photo();
 const credits = new Credit();
 const file = new Resource(location.origin + '/response.json', {type: 'blob'});
+let authorPromise;
 
 async function showDetail(e) {
     e.preventDefault();
+    authorPromise && authorPromise.abort();
     document.querySelector('.overlay').style.display = 'block';
     const { id } = e.target.dataset;
     const [detail, image] = await Promise.all([
@@ -107,12 +109,13 @@ function loadAuthors(persons) {
 }
 
 async function showMain() {
-    const footer = new Resource(location.origin + '/footer.html', {cache: Infinity});
-    const res = await Promise.all([post.get(), footer.get(), credits.get(null, {
+    authorPromise = credits.get(null, {
         focus: 5,
         stale: 20,
         onUpdate: loadAuthors
-    })]);
+    });
+    const footer = new Resource(location.origin + '/footer.html', {cache: Infinity});
+    const res = await Promise.all([post.get(), footer.get(), authorPromise]);
     const fragment = document.createDocumentFragment();
     const ul = document.createElement('ul');
     res[0].splice(0 , 30).forEach((todo) => {

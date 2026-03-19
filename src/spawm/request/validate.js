@@ -4,7 +4,7 @@ const registry = new Map();
 const throttles = new Map();
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('focus', () => run('focus'));
+  window.addEventListener('visibilitychange', () => run('focus'));
   window.addEventListener('online', () => run('reconnect'));
 }
 

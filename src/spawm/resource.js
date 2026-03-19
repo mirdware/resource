@@ -15,7 +15,6 @@ import { sendRequest } from "./request/sandbox";
  * @var {c} cache
  * @var {w} worker
  */
-
 export default class Resource extends Endpoint {
   constructor(url, options) {
     options = options || {};
