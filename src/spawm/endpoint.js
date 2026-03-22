@@ -1,34 +1,51 @@
 import manage from "./request/manage";
-import { privy } from "./cache";
+
+export const privy = new WeakMap();
+
+export function mergeOptions(parent, options) {
+  options = options || {};
+  const props = { redirect: 'rd', type: 't', cache: 'c', timeout: 'to', withCredentials: 'wc' };
+  const properties = Object.assign({}, parent, {
+    h:  Object.assign({}, parent.h, options.headers || {}),
+  });
+  if (options.swr !== undefined) {
+    properties.swr = options.swr ? Object.assign({}, parent.swr, options.swr) : null;
+  }
+  for (const key in props) {
+    if (options[key] !== undefined) {
+      properties[props[key]] = options[key];
+    }
+  }
+  return properties;
+}
 
 export default class Endpoint {
   constructor(options) {
     privy.set(this, options);
   }
 
-  get(query, swr) {
-    return this.send('GET', null, query, swr);
+  get(query, options) {
+    return this.send('GET', null, query, options);
   }
 
-  post(body, query) {
-    return this.send('POST', body, query)
+  post(body, query, options) {
+    return this.send('POST', body, query, options);
   }
 
-  put(body, query) {
-    return this.send('PUT', body, query);
+  put(body, query, options) {
+    return this.send('PUT', body, query, options);
   }
 
-  delete(query) {
-    return this.send('DELETE', null, query);
+  delete(query, options) {
+    return this.send('DELETE', null, query, options);
   }
 
-  patch(body, query) {
-    return this.send('PATCH', body, query);
+  patch(body, query, options) {
+    return this.send('PATCH', body, query, options);
   }
 
-  send(method, body, query, swr) {
-    const options = Object.assign({}, privy.get(this));
-    options.swr = swr === null ? null : Object.assign({}, options.swr, swr);
+  send(method, body, query, options) {
+    options = mergeOptions(privy.get(this), options);
     return manage(options, method, body, query);
   }
 }

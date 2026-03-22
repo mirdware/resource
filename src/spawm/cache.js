@@ -19,5 +19,3 @@ export function get(key) {
     cache.set(key, entry);
     return JSON.parse(entry.v);
 }
-
-export const privy = new WeakMap();

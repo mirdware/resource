@@ -10,13 +10,19 @@ Mediante node se puede instalar con el comando `npm i @spawm/resource` o manualm
 
 Es posible configurar la petición enviando como segundo parámetro del constructor de `Resource` los siguientes datos:
 
-* **headers:** `[{'X-Requested-With': 'XMLHttpRequest'}]` Las cabeceras que enviara la petición, por defecto solo se envía la cabecera `X-Requested-With`, cabe recordar que una vez agregada una cabecera no es posible eliminarla.
+* **headers:** `{'X-Requested-With': 'XMLHttpRequest'}` Las cabeceras que enviara la petición, por defecto solo se envía la cabecera `X-Requested-With`, cabe recordar que una vez agregada una cabecera no es posible eliminarla.
 
 * **redirect:** `true` si el servidor responde desde una ubicación diferente a la cual fue realizada la petición, el sistema realizara una redirección hacia esta nueva URL.
 
 * **type:** son los tipos de respuesta que se esperan del servidor según el [responseType](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseType). Si se deja vacío, la librería tratará de parsearlo según las cabeceras de respuesta del servidor.
 
 * **cache:** Valor numérico que indica cuantos segundos dura la respuesta siendo válida antes de volver a hacer una nueva petición, solo funciona en peticiones GET.
+
+* **timeout:** que representa el número de milisegundos que una solicitud puede tardar antes de ser terminada automáticamente.
+
+* **withCredentials:** Es un valor booleano que indica si las solicitudes de control de acceso entre sitios (cross-site) deben realizarse utilizando credenciales, tales como cookies, encabezados de autenticación o certificados de cliente TLS. Establecer el valor de withCredentials no tiene ningún efecto en las solicitudes del mismo origen. También se utiliza para señalar cuándo deben ignorarse las cookies en la respuesta.
+
+* **swr:** Objeto para configurar el swr (Stale While Revalidate) acepta las propiedades: `focus`, `reconnect`, `stale` y `onUpdate`. Esta última es la función a ejecutar cuando se refresca un dato.
 
 ## Uso
 Para utilizar un recurso basta con crear una instancia nueva de la clase Resource.
@@ -51,24 +57,28 @@ class AppResource extends Resource {
 
 Si se cuenta con un sistema de inversión de control, es posible incluir la clase como un repositorio, con lo cual manejaremos un único objeto durante todo el ciclo de vida de la aplicación. Cabe resaltar el uso de [web workers](https://developer.mozilla.org/es/docs/Web/Guide/Performance/Usando_web_workers) para enviar peticiones, esto permite que toda petición realizada con Resource se realice en segundo plano.
 
+Para que se logre ejecutar en un worker se requiere worker-src blob: en la política CSP del servidor para ejecutar peticiones en un Web Worker. Sin este permiso, las peticiones se ejecutan en el hilo principal.
+
+Si una petición falla ya sea por error de red o el servidor responde con un estado fuera del rango 1xx–3xx (estados 4xx o 5xx), la promesa se rechazará con un reject.
+
 ## Métodos
 
-* **get:** El método `get` solicita una representación de un recurso específico. Las peticiones que usan el método GET solo deben recuperar datos. Acepta dos parámetros, el primero un objeto que convertirá en el query string y el segundo la parametrización del swr (opcional).
+* **get:** El método `get` solicita una representación de un recurso específico. Las peticiones que usan el método GET solo deben recuperar datos. Acepta dos parámetros (`2`), el primero un objeto que se reemplazá los elementos que coincidan con los tokens {key} y el restante se convierten en el query string y el segundo options para sobreescribir la configuración inicial del constructor (opcional).
 
-* **post:** El método `post` se utiliza para enviar una entidad a un recurso en específico, causando a menudo un cambio en el estado o efectos secundarios en el servidor. Recibe dos objetos como parámetros, el primero es el que se enviara dentro del cuerpo del mensaje y el segundo opcional un query string.
+* **post:** El método `post` se utiliza para enviar una entidad a un recurso en específico, causando a menudo un cambio en el estado o efectos secundarios en el servidor. Recibe tres (`3`) objetos como parámetros, el primero es el que se enviara dentro del cuerpo del mensaje, el segundo opcional un query parameters y el tercero options para sobreescribir la configuración inicial del constructor (opcional).
 
-* **put:** El modo `put` reemplaza todas las representaciones actuales del recurso de destino con la carga útil de la petición. Recibe dos objetos como parámetros, el primero es el que se enviara dentro del cuerpo del mensaje y el segundo opcional un query string.
+* **put:** El modo `put` reemplaza todas las representaciones actuales del recurso de destino con la carga útil de la petición. Recibe tres (`3`) objetos como parámetros, el primero es el que se enviara dentro del cuerpo del mensaje, el segundo opcional un query parameter y el tercero options para sobreescribir la configuración inicial del constructor (opcional).
 
-* **delete:** El método `delete` borra un recurso en específico. Solo acepta como parámetro un objeto que convertirá en el query string.
+* **delete:** El método `delete` borra un recurso en específico. Acepta dos (`2`) parámetros como parámetros un objeto que convertirá en el query parameters y el segundo options para sobreescribir la configuración inicial del constructor (opcional).
 
-* **patch:** El método `patch` es utilizado para aplicar modificaciones parciales a un recurso. Recibe dos objetos como parámetros, el primero es el que se enviara dentro del cuerpo del mensaje y el segundo opcional un query string.
+* **patch:** El método `patch` es utilizado para aplicar modificaciones parciales a un recurso. Recibe tres (`3`) objetos como parámetros, el primero es el que se enviara dentro del cuerpo del mensaje, el segundo opcional un query string y el tercero options para sobreescribir la configuración inicial del constructor (opcional).
 
-* **send:** El método `send` envía cualquier tipo de petición al servidor, podemos pensar en los anteriores métodos como alias de este. Recibe tres parámetros, el primero es un string con el nombre del método por el cual se envía la petición, el segundo el objeto que se enviara en el cuerpo de la petición y el último el query string, igualmente como objeto javascript.
+* **send:** El método `send` envía cualquier tipo de petición al servidor, podemos pensar en los anteriores métodos como alias de este. Recibe cuatro (`4`) parámetros, el primero es un string con el nombre del método por el cual se envía la petición, el segundo el objeto que se enviara en el cuerpo de la petición, el tercero el query parameters y el último options para sobreescribir la configuración inicial del constructor (opcional).
 
 * **add:** El método `add` no envía peticiones al servidor, su función es crear un nuevo recurso sobreescribiendo las propiedades de quien llama el método; el nuevo recurso **no** puede volver a llamar al método add. Por ejemplo un recurso `/posts/1` podría tener una URL `/posts/1/comments` donde se listan los comentarios del post, para esta situación tendríamos el siguiente caso:
 
 ```javascript
-const Resource = new Resource('/posts/{id}');
+const resource = new Resource('/posts/{id}');
 // Carga todos los recursos
 resource.get().then(res => console.log(res));
 //carga solo el recurso 1
@@ -77,7 +87,7 @@ resource.get({ id: 1 }).then(res => console.log(res));
 resource.add('/comments').get({ id: 1 });
 ```
 
-El método add recibe dos parametros, el primero es la url a añadir al recurso y el segundo un objeto el cual tiene las propiedades: `headers`, `redirect`, `cache` y `type`; en el caso de la primera propiedad lo que se envíe se agregara a los headers ya existentes, mientras que para el resto se sobreescribira en caso de ya existir.
+El método add recibe dos parámetros, el primero es la url a añadir al recurso y el segundo un objeto el cual tiene las propiedades: `headers`, `redirect`, `cache`, `swr`, `timeout` y `type`; en el caso de la primera propiedad lo que se envíe se agregara a los headers ya existentes, mientras que para el resto se sobreescribira en caso de ya existir.
 
 ## Concurrencia y Deduplicación
 Para optimizar el rendimiento y evitar el uso innecesario de red, la librería implementa **Deduplicación Automática de Peticiones en Vuelo (In-flight)**.
@@ -87,9 +97,14 @@ Si se realizan múltiples llamadas idénticas (mismo método, URL, headers y cue
 Esta característica es especialmente útil en arquitecturas de microservicios o interfaces complejas donde varios componentes necesitan los mismos datos al inicializarse.
 
 ## Revalidate
-Capítulo aparte merece el método revalidate, el cual permite ejecutar peticiones en diferentes momentos y con diferentes estrategias, esto para tratar de mantener la información lo más actualizada posible haciendo uso de un método de invalidación de caché llamado Stale While Relavidate popularizado por [HTTP RFC 5861](https://datatracker.ietf.org/doc/html/rfc5861).
+Capítulo aparte merece el método revalidate, el cual permite ejecutar peticiones en diferentes momentos y con diferentes estrategias, esto para tratar de mantener la información lo más actualizada posible haciendo uso de un método de invalidación de caché llamado Stale While Revalidate popularizado por [HTTP RFC 5861](https://datatracker.ietf.org/doc/html/rfc5861).
 
-El sistema de revalidación (swr) recibe un objeto bien sea por constructor o mediante el método get, el objeto acepta las propiedades: `focus`, `reconnect`, `stale` y `onUpdate`. Esta última es la función a ejecutar cuando se refresca un dato.
+El sistema de revalidación (swr) recibe un objeto bien sea por constructor o mediante el método get. Si se pasa swr con un valor null se anulara cualquier configuración creada anteriormente, igual se pueden invalidar cada una de las propiedades nulificándola. Los métodos del swr son:
+
+* **focus:** Se ejecuta al tomar el foco de la ventana, puede ser cualquier valor númerico positivo incluyendo `0`.
+* **reconect:** Se ejecuta al reconectar la aplicación a intener, puede ser cualquier valor númerico positivo incluyendo `0`.
+* **stale** Se ejecuta de manera continua cada X tiempo, siendo X el valor númerico que se le pasa `>0`.
+* **onUpdate** Es la función que se ejecuta cuando la cache ha cambiado.
 
 ```javascript
 function loadAuthors(persons) {
@@ -112,8 +127,6 @@ const authors = await credits.get(null, {
 loadAuthors(authors);
 ```
 
-Si se pasa null como segundo parámetro del método get se anulara cualquier configuración creada mediante el constructor, igual se pueden invalidar cada una de las propiedades nulificándola.
-
 > **Nota:** Las revalidaciones automáticas (focus, reconnect, stale) también pasan por el sistema de deduplicación. Si una revalidación está en curso, cualquier petición manual al mismo recurso esperará a dicha actualización en lugar de crear ruido en la red.
 
 ## Abort
@@ -129,6 +142,8 @@ const req2 = user.get({ id: 1 }); // Esta no genera una nueva petición de red
 req1.abort(); // La petición física sigue viva porque req2 aún la necesita.
 req2.abort(); // Ahora que no hay interesados, la petición se cancela en el Worker/Navegador.
 ```
+
+Cada cancelación liberará la promesa con un reject que devolvera un Error indicando que la petición ha sido abortada. Cualquier petición con SWR en una SPA debe ser abortada al destruir el componente para liberar memoria.
 
 ## Evitando los interceptores
 Otra funcionalidad de la programación orientada a objetos que podemos usar es el polimorfismo, lo cual nos permite modificar peticiones o respuestas; tareas delegadas en la mayoría de casos a interceptores.

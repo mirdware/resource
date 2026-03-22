@@ -5,12 +5,12 @@ declare module '@spawm/resource' {
     }
 
     export class Endpoint {
-        get(query?: Payload, swr?: SwrOptions|null): AbortablePromise<Reply>;
-        post(body: Payload, query?: Payload): AbortablePromise<Reply>;
-        put(body: Payload, query?: Payload): AbortablePromise<Reply>;
-        patch(body: Payload, query?: Payload): AbortablePromise<Reply>;
-        delete(query?: Payload): AbortablePromise<Reply>;
-        send(method: string, body?: Payload|null, query?: Payload|null, swr?: SwrOptions|null): AbortablePromise<Reply>;
+        get(query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
+        post(body: RequestPayload, query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
+        put(body: RequestPayload, query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
+        patch(body: RequestPayload, query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
+        delete(query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
+        send(method: string, body?: RequestPayload, query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
     }
 
     export interface AbortablePromise<T> extends Promise<T> {
@@ -21,7 +21,9 @@ declare module '@spawm/resource' {
         redirect?: boolean;
         cache?: number;
         type?: "arraybuffer" | "blob" | "document" | "json" | "text" | "";
-        swr?: SwrOptions;
+        timeout?: number;
+        withCredentials?: boolean;
+        swr?: SwrOptions | null;
         headers?: { [x: string]: string };
     }
 
@@ -29,14 +31,20 @@ declare module '@spawm/resource' {
         focus?: number;
         reconnect?: number;
         stale?: number;
-        onUpdate?: (reply: Reply, meta: { status: number }) => void;
+        onUpdate?: (reply: ResponsePayload, meta: { status: number, headers: { [x: string]: string } }) => void;
     }
 
-    interface Payload { [key: string]: JSONValue };
+    type JSONObject = { [key: string]: JSONValue | JSONObject | Array<JSONObject | JSONValue> };
 
-    type JSONValue = string | number | boolean | Payload | JSONArray | Blob | File | null;
+    type JSONValue = string | number | boolean | null;
 
-    type Reply = Payload | JSONArray | void | Blob | string | XMLDocument;
+    type Payload = JSONObject | Array<JSONObject | JSONValue> | PayloadValue | null;
 
-    interface JSONArray extends Array<JSONValue> { };
+    type ResponsePayload = Payload | string | void;
+
+    type QueryParams = { [key: string]: string | number | boolean };
+
+    type RequestPayload = Payload | { [key: string]: JSONValue | PayloadValue } | URLSearchParams;
+
+    type PayloadValue = Blob | ArrayBuffer;
 }

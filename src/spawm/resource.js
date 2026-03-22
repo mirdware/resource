@@ -1,5 +1,4 @@
-import Endpoint from "./endpoint";
-import { privy } from "./cache";
+import Endpoint, { privy, mergeOptions } from "./endpoint";
 import { sendRequest } from "./request/sandbox";
 
 /**
@@ -18,15 +17,23 @@ import { sendRequest } from "./request/sandbox";
 export default class Resource extends Endpoint {
   constructor(url, options) {
     options = options || {};
+    let worker;
+    if (typeof Worker !== "undefined") {
+      const blobURL = URL.createObjectURL(
+        new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}'])
+      );
+      worker = new Worker(blobURL);
+      URL.revokeObjectURL(blobURL);
+    }
     super({
       u: url,
-      w: Worker ? new Worker(URL.createObjectURL(
-        new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}'])
-      )) : null,
+      w:  worker,
       rd: options.redirect ?? true,
-      t: options.type ?? '',
+      t: options.type || '',
       swr: options.swr,
       c: options.cache,
+      to: options.timeout || 0,
+      wc: options.withCredentials,
       h: Object.assign({
         'X-Requested-With': 'XMLHttpRequest'
       }, options.headers || {})
@@ -34,20 +41,9 @@ export default class Resource extends Endpoint {
   }
 
   add(path, options) {
-    const parent = privy.get(this);
-    const properties = Object.assign({}, parent, {
-      h: Object.assign({}, parent.h),
-      u: parent.u + path
-    });
-    if (options) {
-      const props = { redirect: 'rd', type: 't', cache: 'c', swr: 'swr' };
-      for (const key in props) {
-        if (options[key] !== undefined) {
-          properties[props[key]] = options[key];
-        }
-      }
-      Object.assign(properties.h, options.headers || {});
-    }
-    return new Endpoint(properties);
+    const properties = privy.get(this);
+    options = mergeOptions(properties, options);
+    options.u = (properties.u + '/' + path).replace(/([^:]\/)\/+/g, "$1");
+    return new Endpoint(options);
   }
 }
