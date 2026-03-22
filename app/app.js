@@ -109,10 +109,12 @@ function loadAuthors(persons) {
 }
 
 async function showMain() {
-    authorPromise = credits.get(null, {
-        focus: 5,
-        stale: 20,
-        onUpdate: loadAuthors
+    authorPromise = await credits.get(null, {
+        swr: {
+            focus: 5,
+            stale: 20,
+            onUpdate: loadAuthors
+        }
     });
     const footer = new Resource(location.origin + '/footer.html', {cache: Infinity});
     const res = await Promise.all([post.get(), footer.get(), authorPromise]);

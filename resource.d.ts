@@ -23,6 +23,7 @@ declare module '@spawm/resource' {
         type?: "arraybuffer" | "blob" | "document" | "json" | "text" | "";
         timeout?: number;
         withCredentials?: boolean;
+        onProgress?: (loaded: number, total: number) => void;
         swr?: SwrOptions | null;
         headers?: { [x: string]: string };
     }
@@ -38,13 +39,11 @@ declare module '@spawm/resource' {
 
     type JSONValue = string | number | boolean | null;
 
-    type Payload = JSONObject | Array<JSONObject | JSONValue> | PayloadValue | null;
+    type Payload = JSONObject | Array<JSONObject | JSONValue> | Blob | ArrayBuffer | null;
 
-    type ResponsePayload = Payload | string | void;
+    type ResponsePayload = Payload | string | Document;
 
-    type QueryParams = { [key: string]: string | number | boolean };
+    type QueryParams = { [key: string]: string | number | Array<string | number> } | URLSearchParams;
 
-    type RequestPayload = Payload | { [key: string]: JSONValue | PayloadValue } | URLSearchParams;
-
-    type PayloadValue = Blob | ArrayBuffer;
+    type RequestPayload = Payload | { [key: string]: JSONValue | Array<JSONValue | Blob> | Blob } | URLSearchParams;
 }

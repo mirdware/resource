@@ -24,6 +24,8 @@ Es posible configurar la petición enviando como segundo parámetro del construc
 
 * **swr:** Objeto para configurar el swr (Stale While Revalidate) acepta las propiedades: `focus`, `reconnect`, `stale` y `onUpdate`. Esta última es la función a ejecutar cuando se refresca un dato.
 
+* **onProgress:** Es una función para ir mediendo el proceso de subida de las peticiones, especialmente útil para archivos de considerable tamaño, no tiene en cuenta el tiempo que tarda el servidor en procesar la información.
+
 ## Uso
 Para utilizar un recurso basta con crear una instancia nueva de la clase Resource.
 
@@ -102,7 +104,7 @@ Capítulo aparte merece el método revalidate, el cual permite ejecutar peticion
 El sistema de revalidación (swr) recibe un objeto bien sea por constructor o mediante el método get. Si se pasa swr con un valor null se anulara cualquier configuración creada anteriormente, igual se pueden invalidar cada una de las propiedades nulificándola. Los métodos del swr son:
 
 * **focus:** Se ejecuta al tomar el foco de la ventana, puede ser cualquier valor númerico positivo incluyendo `0`.
-* **reconect:** Se ejecuta al reconectar la aplicación a intener, puede ser cualquier valor númerico positivo incluyendo `0`.
+* **reconnect:** Se ejecuta al reconectar la aplicación a intener, puede ser cualquier valor númerico positivo incluyendo `0`.
 * **stale** Se ejecuta de manera continua cada X tiempo, siendo X el valor númerico que se le pasa `>0`.
 * **onUpdate** Es la función que se ejecuta cuando la cache ha cambiado.
 
@@ -119,9 +121,11 @@ function loadAuthors(persons) {
 }
 
 const authors = await credits.get(null, {
-  focus: 5,
-  stale: 20,
-  onUpdate: loadAuthors
+  swr: {
+    focus: 5,
+    stale: 20,
+    onUpdate: loadAuthors
+  }
 });
 
 loadAuthors(authors);
@@ -152,8 +156,8 @@ Como se mencionó anteriormente, send es el método principal y sobre el cual se
 
 ```javascript
 class AppResource extends Resource {
-  async send(method, body, query) {
-    const response = await super.send(method, body, query);
+  async send(method, body, query, options) {
+    const response = await super.send(method, body, query, options);
     response.at = new Date();
     return response;
   }

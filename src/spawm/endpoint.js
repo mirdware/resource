@@ -4,7 +4,7 @@ export const privy = new WeakMap();
 
 export function mergeOptions(parent, options) {
   options = options || {};
-  const props = { redirect: 'rd', type: 't', cache: 'c', timeout: 'to', withCredentials: 'wc' };
+  const props = { redirect: 'rd', type: 't', cache: 'c', timeout: 'to', withCredentials: 'wc', onProgress: 'op' };
   const properties = Object.assign({}, parent, {
     h:  Object.assign({}, parent.h, options.headers || {}),
   });

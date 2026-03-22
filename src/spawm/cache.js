@@ -14,7 +14,7 @@ export function set(key, value) {
 
 export function get(key) {
     const entry = cache.get(key);
-    if (!entry) return null;
+    if (!entry) return;
     cache.delete(key);
     cache.set(key, entry);
     return JSON.parse(entry.v);

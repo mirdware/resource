@@ -19,23 +19,26 @@ export default class Resource extends Endpoint {
     options = options || {};
     let worker;
     if (typeof Worker !== "undefined") {
-      const blobURL = URL.createObjectURL(
-        new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}'])
-      );
-      worker = new Worker(blobURL);
-      URL.revokeObjectURL(blobURL);
+      try {
+        const blobURL = URL.createObjectURL(
+          new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}'])
+        );
+        worker = new Worker(blobURL);
+        URL.revokeObjectURL(blobURL);
+      } catch(e) { }
     }
     super({
       u: url,
       w:  worker,
       rd: options.redirect ?? true,
-      t: options.type || '',
+      t: options.type || "text",
       swr: options.swr,
       c: options.cache,
       to: options.timeout || 0,
       wc: options.withCredentials,
+      op: options.onProgress,
       h: Object.assign({
-        'X-Requested-With': 'XMLHttpRequest'
+        "X-Requested-With": "XMLHttpRequest"
       }, options.headers || {})
     });
   }
@@ -43,7 +46,7 @@ export default class Resource extends Endpoint {
   add(path, options) {
     const properties = privy.get(this);
     options = mergeOptions(properties, options);
-    options.u = (properties.u + '/' + path).replace(/([^:]\/)\/+/g, "$1");
+    options.u = (properties.u + "/" + path).replace(/([^:]\/)\/+/g, "$1");
     return new Endpoint(options);
   }
 }

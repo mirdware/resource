@@ -5,8 +5,9 @@ import { subscribe, unsubscribe } from './revalidate';
 /**
  *
  * @var {m} method
+ * @var {h} headers
  * @var {d} data
- * @var {q} queryString
+ * @var {q} query
  * @var {h} headers
  * @var {u} url
  * @var {rd} redirect
@@ -15,19 +16,49 @@ import { subscribe, unsubscribe } from './revalidate';
  * @var {c} cache
  * @var {n} now
  * @var {w} worker
+ * @var {i} interval
+ * @var {l} length
+ * @var {t} type
+ * @var {p} progress
  */
 const fn = {};
 const inFlight = new Map();
 
+function parse(xhr) {
+  if (xhr.t === "document") {
+    const parser = new DOMParser();
+    const mime = xhr.h['content-type']?.split(';')[0].trim() || 'text/html';
+    return parser.parseFromString(xhr.r, mime);
+  }
+  return xhr.r;
+}
+
 function solve(xhr, resolve, reject) {
   if (xhr.rd) return (location.href = xhr.u);
-  const payload = { status: xhr.s, headers: xhr.h, swr: xhr.swr };
+  const payload = { data: parse(xhr), status: xhr.s, headers: xhr.h, swr: xhr.swr };
   if (xhr.s < 1 || xhr.s > 399) {
     const error = new Error(xhr.s ? "Client" : "Network");
-    error.data = xhr.r;
     reject(Object.assign(error, payload));
   } else {
-    resolve(xhr.r, payload);
+    resolve(payload.data);
+  }
+}
+
+function setCache(request, response, resolve, reject, swr) {
+  if (!["blob", "arraybuffer"].includes(request.t)) {
+    if (request.c && response.s > 0 && response.s < 400) {
+      const id = request.i ? response.id.substring(1) : response.id;
+      response.n = new Date();
+      set(id, response);
+    }
+    if (request.r) {
+      request.r.v = response.rv;
+    }
+  }
+  if (resolve) {
+    solve(response, resolve, reject);
+  } else if (swr && swr.onUpdate && !response.swr) {
+    swr.onUpdate(parse(response), { status: response.s, headers: response.h });
   }
 }
 
@@ -42,24 +73,6 @@ function abortRequest(worker, id) {
   sendRequest(abortObject);
 }
 
-function setCache(request, response, resolve, reject, swr) {
-  if (!['blob', 'arraybuffer', 'document'].includes(request.t)) {
-    if (request.c && response.s > 0 && response.s < 400) {
-      const id = request.i ? response.id.substring(1) : response.id;
-      response.n = new Date();
-      set(id, response);
-    }
-    if (request.r) {
-      request.r.v = JSON.stringify(response.r);
-    }
-  }
-  if (resolve) {
-    solve(response, resolve, reject);
-  } else if (swr && swr.onUpdate && !response.swr) {
-    swr.onUpdate(response.r, { status: response.s, headers: response.h });
-  }
-}
-
 function hash(str) {
   let h1 = 0x811c9dc5
   let h2 = 5381;
@@ -71,26 +84,32 @@ function hash(str) {
   return h1.toString(36) + h2.toString(36);
 }
 
-export function execute(worker, request, resolve, reject, swr) {
+export function execute(worker, request, resolve, reject, swr, onProgress) {
   const { id } = request;
   if (inFlight.has(id)) {
     return inFlight.get(id).push({ resolve, reject });
   }
   inFlight.set(id, [{ resolve, reject }]);
   const callback = (res) => {
-    const observers = inFlight.get(id) || [];
-    inFlight.delete(id);
-    observers.forEach(
-      observer => setCache(request, res, observer.resolve, observer.reject, swr)
-    );
-    if (request.i) inFlight.set(id, []);
+    if (res.p) {
+      if (onProgress) {
+        onProgress(res.l, res.p);
+      }
+    } else {
+      const observers = inFlight.get(id) || [];
+      inFlight.delete(id);
+      observers.forEach(
+        observer => setCache(request, res, observer.resolve, observer.reject, swr)
+      );
+      if (request.i) inFlight.set(id, []);
+    }
   };
   if (worker) {
     worker.postMessage(request);
     fn[id] = ({ data }) => {
       if (data.id === id) {
         callback(data);
-        if (!request.i) {
+        if (!data.p && !request.i) {
           worker.removeEventListener('message', fn[id]);
           delete fn[id];
         }
@@ -102,36 +121,34 @@ export function execute(worker, request, resolve, reject, swr) {
 }
 
 export default function manage(resource, method, data, query) {
-  const { w: worker, swr, u, h, ...props } = resource;
+  const { w: worker, swr, u, h, op: onProgress, ...props } = resource;
   const request = { u, h, m: method, d: data, q: query };
   const id = hash(JSON.stringify(request, (_, v) => {
     if (v instanceof URLSearchParams) return v.toString();
-    if (v instanceof FormData) return Array.from(v.entries());
-    if (v instanceof ArrayBuffer) return { $t: 'ab', $s: v.byteLength };
-    if (v instanceof Blob) return { $t: 'blob', $s: v.size, $m: v.type };
+    if (v instanceof ArrayBuffer) return { $t: "ab", $s: v.byteLength };
+    if (v instanceof Blob) return { $t: "blob", $s: v.size, $m: v.type };
     return v;
   }));
-  const isGet = method === 'GET';
+  const cached = method === 'GET' ? get(id) : null;
   let resolver;
   Object.assign(request, props);
   request.id = id;
-  if (swr && isGet) {
-    request.r = { v: '{}' };
+  if (swr && cached !== null) {
+    request.r = { v: cached?.rv ?? '{}' };
     subscribe(id, { w: worker, r: request, swr });
   }
   const promise = new Promise((resolve, reject) => {
-    const cached = get(id);
-    if (cached && isGet) {
+    if (cached) {
       const isValid = new Date(new Date(cached.n).getTime() + 1000 * request.c) > new Date();
       if (request.c === Infinity || isValid) {
         return solve(cached, resolve, reject);
       }
       if (swr) {
         solve(cached, resolve, reject);
-        return execute(worker, request, null, null, swr);
+        return execute(worker, request, null, null, swr, onProgress);
       }
     }
-    execute(worker, request, resolve, reject, swr);
+    execute(worker, request, resolve, reject, swr, onProgress);
     resolver = resolve;
   });
   promise.abort = () => {
