@@ -6,10 +6,10 @@ declare module '@spawm/resource' {
 
     export class Endpoint {
         get(query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
-        post(body: RequestPayload, query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
-        put(body: RequestPayload, query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
-        patch(body: RequestPayload, query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
-        delete(query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
+        post(body: RequestPayload, query?: QueryParams, options?: PartialOptions): AbortablePromise<ResponsePayload>;
+        put(body: RequestPayload, query?: QueryParams, options?: PartialOptions): AbortablePromise<ResponsePayload>;
+        patch(body: RequestPayload, query?: QueryParams, options?: PartialOptions): AbortablePromise<ResponsePayload>;
+        delete(query?: QueryParams, options?: PartialOptions): AbortablePromise<ResponsePayload>;
         send(method: string, body?: RequestPayload, query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
     }
 
@@ -17,22 +17,24 @@ declare module '@spawm/resource' {
         abort: () => void;
     }
 
-    export interface Options {
+    export interface PartialOptions {
         redirect?: boolean;
-        cache?: number;
-        type?: "arraybuffer" | "blob" | "document" | "json" | "text" | "";
+        type?: 'arraybuffer' | 'blob' | 'document' | 'json' | 'text';
         timeout?: number;
         withCredentials?: boolean;
-        onProgress?: (loaded: number, total: number) => void;
-        swr?: SwrOptions | null;
+        onDownloading?: (loaded: number, total: number) => void;
+        onUploading?: (loaded: number, total: number) => void;
         headers?: { [x: string]: string };
     }
 
-    export interface SwrOptions {
-        focus?: number;
-        reconnect?: number;
-        stale?: number;
-        onUpdate?: (reply: ResponsePayload, meta: { status: number, headers: { [x: string]: string } }) => void;
+    export interface Options extends PartialOptions {
+        cache?: number;
+        swr?: null | {
+            focus?: number;
+            reconnect?: number;
+            stale?: number;
+            onUpdate?: (reply: ResponsePayload, meta: { status: number, headers: { [x: string]: string } }) => void;
+        }
     }
 
     type JSONObject = { [key: string]: JSONValue | JSONObject | Array<JSONObject | JSONValue> };

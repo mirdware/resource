@@ -1,5 +1,5 @@
-import { sendRequest } from "./sandbox";
-import { set, get } from "../cache";
+import { sendRequest } from './sandbox';
+import { set, get } from '../cache';
 import { subscribe, unsubscribe } from './revalidate';
 
 /**
@@ -20,24 +20,27 @@ import { subscribe, unsubscribe } from './revalidate';
  * @var {l} length
  * @var {t} type
  * @var {p} progress
+ * @var {ou} onUploading
+ * @var {od} onDownloading
  */
 const fn = {};
 const inFlight = new Map();
 
-function parse(xhr) {
-  if (xhr.t === "document") {
+function parse(response) {
+  if (response.t === 'document') {
     const parser = new DOMParser();
-    const mime = xhr.h['content-type']?.split(';')[0].trim() || 'text/html';
-    return parser.parseFromString(xhr.r, mime);
+    const mime = response.h['content-type']?.split(';')[0].trim() || 'text/html';
+    return parser.parseFromString(response.r, mime);
   }
-  return xhr.r;
+  return response.r;
 }
 
-function solve(xhr, resolve, reject) {
-  if (xhr.rd) return (location.href = xhr.u);
-  const payload = { data: parse(xhr), status: xhr.s, headers: xhr.h, swr: xhr.swr };
-  if (xhr.s < 1 || xhr.s > 399) {
-    const error = new Error(xhr.s ? "Client" : "Network");
+function solve(response, resolve, reject) {
+  if (response.rd) return (location.href = response.u);
+  const payload = { data: parse(response), status: response.s, headers: response.h, swr: response.swr };
+  const { s: status } = response;
+  if (status < 1 || status > 399) {
+    const error = new Error(status ? 'Client Error ' + status : 'Network');
     reject(Object.assign(error, payload));
   } else {
     resolve(payload.data);
@@ -45,7 +48,7 @@ function solve(xhr, resolve, reject) {
 }
 
 function setCache(request, response, resolve, reject, swr) {
-  if (!["blob", "arraybuffer"].includes(request.t)) {
+  if (!['blob', 'arraybuffer'].includes(request.t)) {
     if (request.c && response.s > 0 && response.s < 400) {
       const id = request.i ? response.id.substring(1) : response.id;
       response.n = new Date();
@@ -84,24 +87,26 @@ function hash(str) {
   return h1.toString(36) + h2.toString(36);
 }
 
-export function execute(worker, request, resolve, reject, swr, onProgress) {
+export function execute(request, payload, promiseObserver) {
+  const { w: worker, od: onDownloading, ou: onUploading } = payload;
   const { id } = request;
+  promiseObserver = promiseObserver || {};
   if (inFlight.has(id)) {
-    return inFlight.get(id).push({ resolve, reject });
+    return inFlight.get(id).push(promiseObserver);
   }
-  inFlight.set(id, [{ resolve, reject }]);
-  const callback = (res) => {
-    if (res.p) {
-      if (onProgress) {
-        onProgress(res.l, res.p);
-      }
+  inFlight.set(id, [promiseObserver]);
+  const callback = (response) => {
+    if (response.p) {
+      response.up ?
+      onUploading && onUploading(response.l, response.p) :
+      onDownloading && onDownloading(response.l, response.p);
     } else {
       const observers = inFlight.get(id) || [];
       inFlight.delete(id);
       observers.forEach(
-        observer => setCache(request, res, observer.resolve, observer.reject, swr)
+        observer => setCache(request, response, observer.resolve, observer.reject, payload.swr)
       );
-      if (request.i) inFlight.set(id, []);
+      if (request.i) inFlight.set(id, [{}]);
     }
   };
   if (worker) {
@@ -121,21 +126,22 @@ export function execute(worker, request, resolve, reject, swr, onProgress) {
 }
 
 export default function manage(resource, method, data, query) {
-  const { w: worker, swr, u, h, op: onProgress, ...props } = resource;
+  const { w: worker, od, ou, swr, u, h, ...props } = resource;
   const request = { u, h, m: method, d: data, q: query };
   const id = hash(JSON.stringify(request, (_, v) => {
     if (v instanceof URLSearchParams) return v.toString();
-    if (v instanceof ArrayBuffer) return { $t: "ab", $s: v.byteLength };
-    if (v instanceof Blob) return { $t: "blob", $s: v.size, $m: v.type };
+    if (v instanceof ArrayBuffer) return { $t: 'ab', $s: v.byteLength };
+    if (v instanceof Blob) return { $t: 'blob', $s: v.size, $m: v.type };
     return v;
   }));
   const cached = method === 'GET' ? get(id) : null;
+  const payload = { w: worker, r: request, swr, od, ou };
   let resolver;
   Object.assign(request, props);
   request.id = id;
   if (swr && cached !== null) {
-    request.r = { v: cached?.rv ?? '{}' };
-    subscribe(id, { w: worker, r: request, swr });
+    request.r = { v: cached?.rv || '{}' };
+    subscribe(id, payload);
   }
   const promise = new Promise((resolve, reject) => {
     if (cached) {
@@ -145,10 +151,10 @@ export default function manage(resource, method, data, query) {
       }
       if (swr) {
         solve(cached, resolve, reject);
-        return execute(worker, request, null, null, swr, onProgress);
+        return execute(request, payload);
       }
     }
-    execute(worker, request, resolve, reject, swr, onProgress);
+    execute(request, payload, { resolve, reject });
     resolver = resolve;
   });
   promise.abort = () => {

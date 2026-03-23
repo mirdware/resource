@@ -18,13 +18,15 @@ Es posible configurar la petición enviando como segundo parámetro del construc
 
 * **cache:** Valor numérico que indica cuantos segundos dura la respuesta siendo válida antes de volver a hacer una nueva petición, solo funciona en peticiones GET.
 
-* **timeout:** que representa el número de milisegundos que una solicitud puede tardar antes de ser terminada automáticamente.
+* **timeout:** Representa el [número de milisegundos](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/timeout) que una solicitud puede tardar antes de ser terminada automáticamente.
 
-* **withCredentials:** Es un valor booleano que indica si las solicitudes de control de acceso entre sitios (cross-site) deben realizarse utilizando credenciales, tales como cookies, encabezados de autenticación o certificados de cliente TLS. Establecer el valor de withCredentials no tiene ningún efecto en las solicitudes del mismo origen. También se utiliza para señalar cuándo deben ignorarse las cookies en la respuesta.
+* **withCredentials:** Es un [valor booleano](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/withCredentials) que indica si las solicitudes de control de acceso entre sitios (cross-site) deben realizarse utilizando credenciales, tales como cookies, encabezados de autenticación o certificados de cliente TLS. Establecer el valor de withCredentials no tiene ningún efecto en las solicitudes del mismo origen. También se utiliza para señalar cuándo deben ignorarse las cookies en la respuesta.
 
-* **swr:** Objeto para configurar el swr (Stale While Revalidate) acepta las propiedades: `focus`, `reconnect`, `stale` y `onUpdate`. Esta última es la función a ejecutar cuando se refresca un dato.
+* **swr:** Objeto para configurar el swr ([Stale While Revalidate](https://datatracker.ietf.org/doc/html/rfc5861)) acepta las propiedades: `focus`, `reconnect`, `stale` y `onUpdate`. Esta última es la función a ejecutar cuando se refresca un dato.
 
-* **onProgress:** Es una función para ir mediendo el proceso de subida de las peticiones, especialmente útil para archivos de considerable tamaño, no tiene en cuenta el tiempo que tarda el servidor en procesar la información.
+* **onUploading:** Es una función para ir midiendo el proceso de subida de las peticiones, especialmente útil para archivos de considerable tamaño, no tiene en cuenta el tiempo que tarda el servidor en procesar la información.
+
+* **onDownloading:** Es una función para ir midiendo el proceso de bajada de las peticiones, especialmente útil para archivos de considerable tamaño.
 
 ## Uso
 Para utilizar un recurso basta con crear una instancia nueva de la clase Resource.
@@ -89,7 +91,7 @@ resource.get({ id: 1 }).then(res => console.log(res));
 resource.add('/comments').get({ id: 1 });
 ```
 
-El método add recibe dos parámetros, el primero es la url a añadir al recurso y el segundo un objeto el cual tiene las propiedades: `headers`, `redirect`, `cache`, `swr`, `timeout` y `type`; en el caso de la primera propiedad lo que se envíe se agregara a los headers ya existentes, mientras que para el resto se sobreescribira en caso de ya existir.
+El método add recibe dos parámetros, el primero es la url a añadir al recurso y el segundo un objeto el cual tiene las mismas propiedades que acepta el contructor; en el caso de `headers` y `swr` lo que se envíe se agregara al objeto ya existente, mientras que para el resto se sobreescribira en caso de ya existir.
 
 ## Concurrencia y Deduplicación
 Para optimizar el rendimiento y evitar el uso innecesario de red, la librería implementa **Deduplicación Automática de Peticiones en Vuelo (In-flight)**.
@@ -152,8 +154,6 @@ Cada cancelación liberará la promesa con un reject que devolvera un Error indi
 ## Evitando los interceptores
 Otra funcionalidad de la programación orientada a objetos que podemos usar es el polimorfismo, lo cual nos permite modificar peticiones o respuestas; tareas delegadas en la mayoría de casos a interceptores.
 
-Como se mencionó anteriormente, send es el método principal y sobre el cual se realizan todas las peticiones al servidor y este puede ser sobreescrito por herencia como vimos en el pasado ejemplo.
-
 ```javascript
 class AppResource extends Resource {
   async send(method, body, query, options) {
@@ -163,3 +163,5 @@ class AppResource extends Resource {
   }
 }
 ```
+
+Como se mencionó anteriormente, send es el método principal y sobre el cual se realizan todas las peticiones al servidor y este puede ser sobreescrito por herencia como vimos en el pasado ejemplo.

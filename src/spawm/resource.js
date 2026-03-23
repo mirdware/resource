@@ -1,5 +1,5 @@
-import Endpoint, { privy, mergeOptions } from "./endpoint";
-import { sendRequest } from "./request/sandbox";
+import Endpoint, { privy, mergeOptions } from './endpoint';
+import { sendRequest } from './request/sandbox';
 
 /**
  *
@@ -18,7 +18,7 @@ export default class Resource extends Endpoint {
   constructor(url, options) {
     options = options || {};
     let worker;
-    if (typeof Worker !== "undefined") {
+    if (typeof Worker !== 'undefined') {
       try {
         const blobURL = URL.createObjectURL(
           new Blob(['self.onmessage=function(e){(' + sendRequest + ')(e.data,self.postMessage)}'])
@@ -31,14 +31,15 @@ export default class Resource extends Endpoint {
       u: url,
       w:  worker,
       rd: options.redirect ?? true,
-      t: options.type || "text",
+      t: options.type || 'text',
       swr: options.swr,
       c: options.cache,
       to: options.timeout || 0,
       wc: options.withCredentials,
-      op: options.onProgress,
+      ou: options.onUploading,
+      od: options.onDownloading,
       h: Object.assign({
-        "X-Requested-With": "XMLHttpRequest"
+        'X-Requested-With': 'XMLHttpRequest'
       }, options.headers || {})
     });
   }
@@ -46,7 +47,7 @@ export default class Resource extends Endpoint {
   add(path, options) {
     const properties = privy.get(this);
     options = mergeOptions(properties, options);
-    options.u = (properties.u + "/" + path).replace(/([^:]\/)\/+/g, "$1");
+    options.u = (properties.u + '/' + path).replace(/([^:]\/)\/+/g, '$1');
     return new Endpoint(options);
   }
 }

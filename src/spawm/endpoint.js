@@ -1,10 +1,18 @@
-import manage from "./request/manage";
+import manage from './request/manage';
 
 export const privy = new WeakMap();
 
 export function mergeOptions(parent, options) {
   options = options || {};
-  const props = { redirect: 'rd', type: 't', cache: 'c', timeout: 'to', withCredentials: 'wc', onProgress: 'op' };
+  const props = {
+    redirect: 'rd',
+    type: 't',
+    cache: 'c',
+    timeout: 'to',
+    withCredentials: 'wc',
+    onUploading: 'ou',
+    onDownloading: 'od'
+  };
   const properties = Object.assign({}, parent, {
     h:  Object.assign({}, parent.h, options.headers || {}),
   });

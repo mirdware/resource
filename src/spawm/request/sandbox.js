@@ -32,7 +32,7 @@ export function sendRequest(request, callback) {
         data[key].forEach(v => formData.append(key, v));
       } else {
         formData.append(key, data[key]);
-}
+      }
     }
     return formData;
   }
@@ -103,6 +103,12 @@ export function sendRequest(request, callback) {
     send(callback);
   }
 
+  function progressHandler(e, upload) {
+    if (e.lengthComputable) {
+      callback({ id, l: e.loaded, p: e.total, up: upload });
+    }
+  }
+
   function send(fn) {
     const headers = request.h;
     const xhr = new XMLHttpRequest();
@@ -118,53 +124,59 @@ export function sendRequest(request, callback) {
       }
       xhr.setRequestHeader(name, headers[name]);
     }
-    xhr.responseType = type === "document" ? "text" : type;
+    if (type === 'document') {
+      type = 'text';
+    }
+    xhr.responseType = type;
     xhr.timeout = request.to * 1000;
     xhr.withCredentials = request.wc;
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        callback({ id, l: e.loaded, p: e.total });
-      }
+    xhr.upload.onprogress = function (e) {
+      progressHandler(e, true);
+    };
+    xhr.onprogress = function (e) {
+      progressHandler(e, false);
     };
     xhr.send(contentType.startsWith('application/json') ? JSON.stringify(request.d) : serialize(request.d));
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4) {
         const headers = {};
         delete self.ax[id];
-        xhr.getAllResponseHeaders().split("\r\n").forEach(line => {
+        xhr.getAllResponseHeaders().split('\r\n').forEach(line => {
           if (!line) return
-          const index = line.indexOf(":");
+          const index = line.indexOf(':');
           headers[line.substring(0, index).trim().toLowerCase()] = line.substring(index + 1).trim();
         });
-        const { responseURL } = xhr;
+        const { responseURL, status } = xhr;
         let { response } = xhr;
         let responseValue = response;
-        if (type === "text") {
-          const mime = headers['content-type'];
-          if (mime) {
-            if (mime.startsWith("application/json")) {
-              try {
-                response = JSON.parse(response);
-                type = "json";
-              } catch(e) { }
-            }  else if (/(application|text)\/xml/.test(mime)) {
-              type = "document";
+        if (status) {
+          if (type === 'text') {
+            const mime = headers['content-type'];
+            if (mime) {
+              if (mime.startsWith('application/json')) {
+                try {
+                  response = JSON.parse(response);
+                  type = 'json';
+                } catch(e) { }
+              }  else if (/(application|text)\/xml/.test(mime)) {
+                type = 'document';
+              }
             }
+          } else {
+            if (type === 'blob') {
+              responseValue = { $t: 'blob', $s: responseValue.size, $m: responseValue.type };
+            } else if (type === 'arraybuffer') {
+              responseValue = { $t: 'ab', $s: responseValue.byteLength }
+            }
+            try { responseValue = JSON.stringify(responseValue) } catch { }
           }
-        } else {
-          if (type === "blob") {
-            responseValue = { $t: "blob", $s: responseValue.size, $m: responseValue.type };
-          } else if (type === "arraybuffer") {
-            responseValue = { $t: "ab", $s: responseValue.byteLength }
-          }
-          try { responseValue = JSON.stringify(responseValue) } catch { }
         }
         fn({
           id,
           h: headers,
           r: response,
           u: responseURL,
-          s: xhr.status,
+          s: status,
           rd: request.rd && responseURL && responseURL !== url,
           rv: responseValue,
           t: type,

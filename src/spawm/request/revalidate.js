@@ -1,4 +1,4 @@
-import { execute } from "./manage";
+import { execute } from './manage';
 
 const registry = new Map();
 const throttles = new Map();
@@ -12,7 +12,7 @@ export function subscribe(id, data) {
   if (data.swr.stale) {
     const newRequest = Object.assign({ i: data.swr.stale }, data.r);
     newRequest.id = 'i' + newRequest.id;
-    execute(data.w, newRequest, null, null, data.swr);
+    execute(newRequest, data);
   }
   registry.set(id, data);
 }
@@ -31,7 +31,7 @@ function run(type) {
       const throttleKey = id + type;
       const nextExecution = throttles.get(throttleKey) || 0;
       if (now > nextExecution) {
-        execute(entry.w, entry.r, null, null, entry.swr);
+        execute(entry.r, entry);
         throttles.set(throttleKey, now + (time * 1000));
       }
     }

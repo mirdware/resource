@@ -111,8 +111,7 @@ function loadAuthors(persons) {
 async function showMain() {
     authorPromise = await credits.get(null, {
         swr: {
-            focus: 5,
-            stale: 20,
+            stale: 1,
             onUpdate: loadAuthors
         }
     });
@@ -149,5 +148,7 @@ document.querySelector('.return').addEventListener('click', (e) => {
 
 document.querySelector('.download').addEventListener('click', (e) => {
     e.preventDefault();
-    file.get().then((blob) => downloadBlob(blob));
+    file.get(null, {
+        onDownloading: (length, total) => console.log(length, total)
+    }).then((blob) => downloadBlob(blob));
 })
