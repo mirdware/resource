@@ -108,10 +108,11 @@ El sistema de revalidación (swr) recibe un objeto bien sea por constructor o me
 * **focus:** Se ejecuta al tomar el foco de la ventana, puede ser cualquier valor númerico positivo incluyendo `0`.
 * **reconnect:** Se ejecuta al reconectar la aplicación a intener, puede ser cualquier valor númerico positivo incluyendo `0`.
 * **stale** Se ejecuta de manera continua cada X tiempo, siendo X el valor númerico que se le pasa `>0`.
-* **onUpdate** Es la función que se ejecuta cuando la cache ha cambiado.
+* **onUpdate** Es la función que se ejecuta cuando la cache ha cambiado. Recibe como primer argumento la respuesta actualizada y como segundo un objeto meta con las propiedades `status` (código HTTP) y `headers` (cabeceras de respuesta).
 
 ```javascript
-function loadAuthors(persons) {
+function loadAuthors(persons, meta) {
+  if (meta.status !== 200) return;
   const fragment = document.createDocumentFragment();
   persons.splice(0 , 30).forEach((person) => {
     const li = document.createElement('li');

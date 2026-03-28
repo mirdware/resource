@@ -111,7 +111,8 @@ function loadAuthors(persons) {
 async function showMain() {
     authorPromise = await credits.get(null, {
         swr: {
-            stale: 1,
+            focus: 1,
+            stale: 20,
             onUpdate: loadAuthors
         }
     });

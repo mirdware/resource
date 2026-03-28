@@ -89,11 +89,13 @@ export function sendRequest(request, callback) {
 
   function establish() {
     if (request.i && !self.i_[id]) {
-      let seq = 0;
+      let busy = false;
       return self.i_[id] = setInterval(() => {
-        const mine = ++seq;
+        if (busy) return;
+        busy = true;
         send((res) => {
-          if (mine === seq && res.s > 0 && !res.swr) {
+          busy = false;
+          if (res.s > 0 && !res.swr) {
             callback(res);
             request.r.v = res.rv;
           }
@@ -158,7 +160,7 @@ export function sendRequest(request, callback) {
                   response = JSON.parse(response);
                   type = 'json';
                 } catch(e) { }
-              }  else if (/(application|text)\/xml/.test(mime)) {
+              } else if (/(application|text)\/(xml|html)/.test(mime)) {
                 type = 'document';
               }
             }
