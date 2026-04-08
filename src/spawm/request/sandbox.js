@@ -82,25 +82,39 @@ export function sendRequest(request, callback) {
       delete self.ax[id];
     }
     if (self.i_[id]) {
-      clearInterval(self.i_[id]);
+      clearTimeout(self.i_[id]);
       delete self.i_[id];
     }
   }
 
   function establish() {
     if (request.i && !self.i_[id]) {
+      const interval = request.i * 1000;
       let busy = false;
-      return self.i_[id] = setInterval(() => {
-        if (busy) return;
-        busy = true;
-        send((res) => {
-          busy = false;
-          if (res.s > 0 && !res.swr) {
-            callback(res);
-            request.r.v = res.rv;
-          }
-        });
-      }, request.i * 1000);
+      let circuitBreaker = 1;
+      function tick () {
+        self.i_[id] = setTimeout(function () {
+          if (busy || circuitBreaker < 0 && ++circuitBreaker) return tick();
+          busy = true;
+          send(function (res) {
+            busy = false;
+            if (self.i_[id]) {
+              if (res.s > 0 && res.s < 400) {
+                circuitBreaker = 1;
+                if (!res.swr) {
+                  callback(res);
+                  request.r.v = res.rv;
+                }
+              } else if (!circuitBreaker || circuitBreaker++ > 3) {
+                circuitBreaker = -6;
+              }
+              tick();
+            }
+          });
+        }, interval + Math.random() * interval);
+      }
+      self.i_[id] = -1;
+      return tick();
     }
     send(callback);
   }
@@ -130,7 +144,7 @@ export function sendRequest(request, callback) {
       type = 'text';
     }
     xhr.responseType = type;
-    xhr.timeout = request.to * 1000;
+    xhr.timeout = request.to;
     xhr.withCredentials = request.wc;
     xhr.upload.onprogress = function (e) {
       progressHandler(e, true);

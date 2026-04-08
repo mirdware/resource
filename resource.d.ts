@@ -1,16 +1,16 @@
 declare module '@spawm/resource' {
-    export default class Resource extends Endpoint {
-        constructor(url: string, options?: Options);
-        add(path: string, options?: Options): Endpoint;
+    export default class Resource<T = ResponsePayload> extends Endpoint<T> {
+        constructor(url: string, options?: Options<T>);
+        add<NewT = T>(path: string, options?: Options<NewT>): Endpoint<NewT>;
     }
 
-    export class Endpoint {
-        get(query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
-        post(body: RequestPayload, query?: QueryParams, options?: PartialOptions): AbortablePromise<ResponsePayload>;
-        put(body: RequestPayload, query?: QueryParams, options?: PartialOptions): AbortablePromise<ResponsePayload>;
-        patch(body: RequestPayload, query?: QueryParams, options?: PartialOptions): AbortablePromise<ResponsePayload>;
-        delete(query?: QueryParams, options?: PartialOptions): AbortablePromise<ResponsePayload>;
-        send(method: string, body?: RequestPayload, query?: QueryParams, options?: Options): AbortablePromise<ResponsePayload>;
+    export class Endpoint<T = ResponsePayload> {
+        get(query?: QueryParams, options?: Options<T>): AbortablePromise<T>;
+        post(body: RequestPayload, query?: QueryParams, options?: PartialOptions): AbortablePromise<T>;
+        put(body: RequestPayload, query?: QueryParams, options?: PartialOptions): AbortablePromise<T>;
+        patch(body: RequestPayload, query?: QueryParams, options?: PartialOptions): AbortablePromise<T>;
+        delete(query?: QueryParams, options?: PartialOptions): AbortablePromise<T>;
+        send(method: string, body?: RequestPayload, query?: QueryParams, options?: Options<T>): AbortablePromise<T>;
     }
 
     export interface AbortablePromise<T> extends Promise<T> {
@@ -27,13 +27,13 @@ declare module '@spawm/resource' {
         headers?: { [x: string]: string };
     }
 
-    export interface Options extends PartialOptions {
+    export interface Options<T = ResponsePayload> extends PartialOptions {
         cache?: number;
         swr?: null | {
             focus?: number;
             reconnect?: number;
             stale?: number;
-            onUpdate?: (reply: ResponsePayload, meta: { status: number, headers: { [x: string]: string } }) => void;
+            onUpdate?: (reply: T, meta: { status: number, headers: { [x: string]: string } }) => void;
         }
     }
 

@@ -135,7 +135,7 @@ async function showMain() {
     ul.appendChild(fragment);
     document.getElementById('main').replaceChildren(ul);
     document.querySelector('.overlay').style.display = 'none';
-    document.querySelector('footer').innerHTML = res[1];
+    document.querySelector('footer').append(...res[1].body.childNodes);
     loadAuthors(res[2]);
 }
 
