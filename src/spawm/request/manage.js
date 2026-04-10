@@ -125,8 +125,8 @@ export function execute(request, payload, promiseObserver) {
   sendRequest(request, callback);
 }
 
-export default function manage(resource, method, data, query) {
-  const { w: worker, od, ou, swr, u, h, ...props } = resource;
+export default function manage(options, method, data, query) {
+  const { w: worker, p_: promises, od, ou, swr, u, h, ...props } = options;
   const request = { u, h, m: method, d: data, q: query };
   const id = hash(JSON.stringify(request, (_, v) => {
     if (v instanceof URLSearchParams) return v.toString();
@@ -139,10 +139,6 @@ export default function manage(resource, method, data, query) {
   let resolver;
   Object.assign(request, props);
   request.id = id;
-  if (swr && cached !== null) {
-    request.r = { v: cached?.rv || '{}' };
-    subscribe(id, payload);
-  }
   const promise = new Promise((resolve, reject) => {
     if (cached) {
       const isValid = new Date(new Date(cached.n).getTime() + 1000 * request.c) > new Date();
@@ -150,6 +146,7 @@ export default function manage(resource, method, data, query) {
         return solve(cached, resolve, reject);
       }
       if (swr) {
+        request.r = { v: cached?.rv || '{}' };
         solve(cached, resolve, reject);
         return execute(request, payload);
       }
@@ -170,6 +167,11 @@ export default function manage(resource, method, data, query) {
     abortRequest(worker, id);
     abortRequest(worker, 'i' + id);
     unsubscribe(id);
+    promises.delete(promise);
+  }
+  if (swr && cached !== null) {
+    subscribe(id, payload);
+    promises.add(promise);
   }
   return promise;
 }

@@ -134,7 +134,8 @@ const authors = await credits.get(null, {
 loadAuthors(authors);
 ```
 
-> **Nota:** Las revalidaciones automáticas (focus, reconnect, stale) también pasan por el sistema de deduplicación. Si una revalidación está en curso, cualquier petición manual al mismo recurso esperará a dicha actualización en lugar de crear ruido en la red.
+> [!important]
+> Las revalidaciones automáticas (focus, reconnect, stale) también pasan por el sistema de deduplicación. Si una revalidación está en curso, cualquier petición manual al mismo recurso esperará a dicha actualización en lugar de crear ruido en la red.
 
 ## Abort
 Todas las promesas devueltas por los métodos de petición cuentan con un método `.abort()`. Al invocarlo, se cancelará la petición de red en curso y se detendrán los ciclos de revalidación (stale) asociados en el Web Worker.
@@ -150,7 +151,7 @@ req1.abort(); // La petición física sigue viva porque req2 aún la necesita.
 req2.abort(); // Ahora que no hay interesados, la petición se cancela en el Worker/Navegador.
 ```
 
-Cada cancelación liberará la promesa con un reject que devolvera un Error indicando que la petición ha sido abortada. Cualquier petición con SWR en una SPA debe ser abortada al destruir el componente para liberar memoria.
+Cada cancelación liberará la promesa con un reject que devolvera un Error indicando que la petición ha sido abortada. Cualquier petición con SWR en una SPA debe ser abortada al destruir el componente para liberar memoria, en entornos con soporte de [FinalizationRegistry](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry) se hara el abort automatico de peticiones con swr del recurso que ha sido destruido.
 
 ## Evitando los interceptores
 Otra funcionalidad de la programación orientada a objetos que podemos usar es el polimorfismo, lo cual nos permite modificar peticiones o respuestas; tareas delegadas en la mayoría de casos a interceptores.
