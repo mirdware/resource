@@ -139,6 +139,10 @@ export default function manage(options, method, data, query) {
   let resolver;
   Object.assign(request, props);
   request.id = id;
+  if (swr && cached !== null) {
+    request.r = { v: cached?.rv || '{}' };
+    subscribe(id, payload);
+  }
   const promise = new Promise((resolve, reject) => {
     if (cached) {
       const isValid = new Date(new Date(cached.n).getTime() + 1000 * request.c) > new Date();
@@ -146,7 +150,6 @@ export default function manage(options, method, data, query) {
         return solve(cached, resolve, reject);
       }
       if (swr) {
-        request.r = { v: cached?.rv || '{}' };
         solve(cached, resolve, reject);
         return execute(request, payload);
       }
@@ -169,9 +172,6 @@ export default function manage(options, method, data, query) {
     unsubscribe(id);
     promises.delete(promise);
   }
-  if (swr && cached !== null) {
-    subscribe(id, payload);
-    promises.add(promise);
-  }
+  request.r && promises.add(promise);
   return promise;
 }

@@ -36,7 +36,6 @@ export default class Resource extends Endpoint {
   constructor(url, options) {
     options = options || {};
     const p_ = new Set();
-    if (cleanup) cleanup.register(this, p_);
     super({
       p_,
       u: url,
@@ -53,6 +52,7 @@ export default class Resource extends Endpoint {
         'X-Requested-With': 'XMLHttpRequest'
       }, options.headers || {})
     });
+    if (cleanup) cleanup.register(this, p_);
   }
 
   add(path, options) {
