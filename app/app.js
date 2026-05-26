@@ -1,5 +1,5 @@
 import './styles/theme.css';
-import Resource from '../src/spawm/resource';
+import Resource from '@spawm/resource';
 
 class Post extends Resource {
     constructor() {
@@ -52,10 +52,14 @@ function downloadBlob(blob, name = 'file.txt') {
 const post = new Post();
 const photo = new Photo();
 const credits = new Credit();
-const file = new Resource(location.origin + '/response.json', {type: 'blob'});
+const file = new Resource(location.origin + '/response.json', { type: 'blob' });
 let authorPromise;
 
 async function showDetail(e) {
+    window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+    });
     e.preventDefault();
     authorPromise && authorPromise.abort();
     document.querySelector('.overlay').style.display = 'block';
@@ -70,7 +74,8 @@ async function showDetail(e) {
     const body = document.createElement('p');
     const commentTitle = document.createElement('h2');
     commentTitle.appendChild(document.createTextNode('Comentarios'));
-    img.setAttribute('src', image.thumbnailUrl);
+    //image.thumbnailUrl dont work
+    img.setAttribute('src', 'https://picsum.photos/200');
     mainTitle.appendChild(img);
     mainTitle.appendChild(document.createTextNode('#' + detail.id + ': ' + detail.title));
     body.appendChild(document.createTextNode(detail.body));
@@ -90,9 +95,10 @@ async function showDetail(e) {
         article.appendChild(who);
         fragment.appendChild(article);
     });
-    document.getElementById('main').replaceChildren(fragment);
+    document.getElementById('main')?.replaceChildren(fragment);
+    console.log('DETAIL LOADED');
     img.addEventListener('load', () => {
-        document.querySelector('.return').style.display = 'block';
+        document.querySelector('.home').style.display = 'block';
         document.querySelector('.overlay').style.display = 'none';
     });
 }
@@ -109,7 +115,16 @@ function loadAuthors(persons) {
 }
 
 async function showMain() {
-    authorPromise = await credits.get(null, {
+    window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+    });
+    authorPromise = credits.get(null, {
+        retry: {
+            attempts: 3,
+            backoff: 2,
+            delay: 3
+        },
         swr: {
             focus: 1,
             stale: 20,
@@ -130,18 +145,19 @@ async function showMain() {
         a.appendChild(text);
         li.appendChild(a);
         fragment.appendChild(li);
-        document.querySelector('.return').style.display = 'none';
+        document.querySelector('.home').style.display = 'none';
     });
     ul.appendChild(fragment);
     document.getElementById('main').replaceChildren(ul);
     document.querySelector('.overlay').style.display = 'none';
-    document.querySelector('footer').append(...res[1].body.childNodes);
+    document.querySelector('footer').replaceChildren(...res[1].body.childNodes);
     loadAuthors(res[2]);
+    console.log('MAIN LOADED');
 }
 
 showMain();
 
-document.querySelector('.return').addEventListener('click', (e) => {
+document.querySelector('.home').addEventListener('click', (e) => {
     e.preventDefault();
     document.querySelector('.overlay').style.display = 'block';
     showMain();

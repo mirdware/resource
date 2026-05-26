@@ -1,20 +1,33 @@
 {
   "name": "@spawm/resource",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Async resources with webworkers",
-  "main": "./lib/resource/resource.js",
-  "types": "./resource.d.ts",
+  "main": "./lib/cjs/@spawm/resource.min.js",
+  "module": "./lib/mjs/@spawm/resource.min.js",
+  "unpkg": "./lib/umd/@spawm/resource.min.js",
+  "types": "./src/resource.d.ts",
+  "exports": {
+    "development": "./src/@spawm/resource.js",
+    "import": "./lib/mjs/@spawm/resource.min.js",
+    "require": "./lib/cjs/@spawm/resource.min.js",
+    "browser": "./lib/umd/@spawm/resource.min.js"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
   "scripts": {
     "build": "rimraf lib && webpack --config config/webpack.js --mode production",
-    "serve": "webpack server --config config/webpack.js --mode development",
+    "dev": "webpack server --config config/webpack.js --mode development",
     "prepare": "npm run build",
-    "start": "npm run build & npm run serve"
+    "start": "npm run dev"
   },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/mirdware/resource.git"
   },
   "keywords": [
+    "spawm",
     "scalar",
     "javascript",
     "ajax",

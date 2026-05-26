@@ -137,6 +137,32 @@ loadAuthors(authors);
 > [!important]
 > Las revalidaciones automáticas (focus, reconnect, stale) también pasan por el sistema de deduplicación. Si una revalidación está en curso, cualquier petición manual al mismo recurso esperará a dicha actualización en lugar de crear ruido en la red.
 
+## Retry
+
+La librería soporta reintentos automáticos ante fallos de red o respuestas con estado `>= 400`. Se configura mediante el objeto `retry`, que acepta las propiedades:
+
+* **attempts:** Número máximo de reintentos (`>0`). Sin este valor o con `0` no se reintenta.
+* **delay:** Segundos de espera antes del primer reintento (por defecto `1`).
+* **backoff:** Multiplicador aplicado al delay en cada reintento sucesivo (por defecto `1`, sin crecimiento exponencial). Un valor de `2` duplica la espera en cada intento.
+
+```javascript
+class AppResource extends Resource {
+  constructor(path) {
+    super('http://localhost:8080/' + path, {
+      retry: {
+        attempts: 3,
+        delay: 1,
+        backoff: 2
+      }
+    });
+  }
+}
+```
+
+Los reintentos aplican exclusivamente a la petición principal. El ciclo `stale` de SWR utiliza su propio mecanismo de circuit-breaker y no se ve afectado. Invocar `.abort()` durante la espera de un reintento cancela el temporizador y rechaza la promesa inmediatamente.
+
+Al igual que `swr`, pasar `retry: null` anula la configuración heredada del constructor.
+
 ## Abort
 Todas las promesas devueltas por los métodos de petición cuentan con un método `.abort()`. Al invocarlo, se cancelará la petición de red en curso y se detendrán los ciclos de revalidación (stale) asociados en el Web Worker.
 

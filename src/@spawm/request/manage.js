@@ -35,12 +35,12 @@ function parse(response) {
   return response.r;
 }
 
-function solve(response, resolve, reject) {
+function solve(response, request, resolve, reject) {
   if (response.rd) return (location.href = response.u);
   const payload = { data: parse(response), status: response.s, headers: response.h, swr: response.swr };
   const { s: status } = response;
   if (status < 1 || status > 399) {
-    const error = new Error(status ? 'Client Error ' + status : 'Network');
+    const error = new Error(status ? response.u + ' with error ' + status : 'Network: ' + request.u);
     reject(Object.assign(error, payload));
   } else {
     resolve(payload.data);
@@ -48,19 +48,15 @@ function solve(response, resolve, reject) {
 }
 
 function setCache(request, response, resolve, reject, swr) {
-  if (!['blob', 'arraybuffer'].includes(request.t)) {
-    if (request.c && response.s > 0 && response.s < 400) {
-      const id = request.i ? response.id.substring(1) : response.id;
-      response.n = new Date();
-      set(id, response);
-    }
-    if (request.r) {
-      request.r.v = response.rv;
-    }
+  if (!['blob', 'arraybuffer'].includes(request.t) && request.c && response.s > 0 && response.s < 400) {
+    const id = request.i ? response.id.substring(1) : response.id;
+    response.n = new Date();
+    set(id, response);
   }
   if (resolve) {
-    solve(response, resolve, reject);
-  } else if (swr && swr.onUpdate && !response.swr) {
+    solve(response, request, resolve, reject);
+  } else if (request.r && !response.swr) {
+    request.r.v = response.rv;
     swr.onUpdate(parse(response), { status: response.s, headers: response.h });
   }
 }
@@ -139,7 +135,7 @@ export default function manage(options, method, data, query) {
   let resolver;
   Object.assign(request, props);
   request.id = id;
-  if (swr && cached !== null) {
+  if (swr && swr.onUpdate && cached !== null) {
     request.r = { v: cached?.rv || '{}' };
     subscribe(id, payload);
   }
@@ -147,10 +143,10 @@ export default function manage(options, method, data, query) {
     if (cached) {
       const isValid = new Date(new Date(cached.n).getTime() + 1000 * request.c) > new Date();
       if (request.c === Infinity || isValid) {
-        return solve(cached, resolve, reject);
+        return solve(cached, request, resolve, reject);
       }
       if (swr) {
-        solve(cached, resolve, reject);
+        solve(cached, request, resolve, reject);
         return execute(request, payload);
       }
     }
@@ -163,7 +159,7 @@ export default function manage(options, method, data, query) {
         const index = observers.findIndex(o => o.resolve === resolver);
         if (index !== -1) {
           const [observer] = observers.splice(index, 1);
-          observer.reject(new Error("Aborted"));
+          observer.reject(new Error('Aborted: ' + u));
         }
         if (observers.length > 0) return;
     }

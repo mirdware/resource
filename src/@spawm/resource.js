@@ -13,6 +13,7 @@ import { sendRequest } from './request/sandbox';
  * @var {t} type
  * @var {c} cache
  * @var {w} worker
+ * @var {re} retry
  */
 const cleanup = typeof FinalizationRegistry !== 'undefined' ?
 new FinalizationRegistry(promises => promises.forEach(promise => promise.abort())) :
@@ -27,7 +28,11 @@ function instantiateWorker() {
       );
       worker = new Worker(blobURL);
       URL.revokeObjectURL(blobURL);
-    } catch(e) { }
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Single thread actived', e);
+      }
+    }
   }
   return worker;
 }
@@ -43,6 +48,7 @@ export default class Resource extends Endpoint {
       rd: options.redirect ?? true,
       t: options.type || 'text',
       swr: options.swr,
+      re: options.retry,
       c: options.cache,
       to: options.timeout || 0,
       wc: options.withCredentials,

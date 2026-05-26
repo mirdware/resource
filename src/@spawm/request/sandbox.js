@@ -85,6 +85,10 @@ export function sendRequest(request, callback) {
       clearTimeout(self.i_[id]);
       delete self.i_[id];
     }
+    if (self.i_[id + 're']) {
+      clearTimeout(self.i_[id + 're']);
+      delete self.i_[id + 're'];
+    }
   }
 
   function establish() {
@@ -116,7 +120,25 @@ export function sendRequest(request, callback) {
       self.i_[id] = -1;
       return tick();
     }
-    send(callback);
+    const retry = request.re || {};
+    const methods = retry.methods || ['GET', 'PUT', 'DELETE'];
+    const backoff = retry.backoff || 1;
+    let retriesLeft = retry.attempts || 0;
+    let retryDelay = retry.delay || 1;
+    function attempt() {
+      send(function (response) {
+        if (retriesLeft > 0 && (response.s < 1 || response.s >= 400) && methods.includes(request.m)) {
+          const wait = retryDelay * 1000;
+          retriesLeft--;
+          retryDelay *= backoff;
+          self.i_[id + 're'] = setTimeout(attempt, wait + Math.random() * wait);
+        } else {
+          delete self.i_[id + 're'];
+          callback(response);
+        }
+      });
+    }
+    attempt();
   }
 
   function progressHandler(e, upload) {
@@ -173,7 +195,11 @@ export function sendRequest(request, callback) {
                 try {
                   response = JSON.parse(response);
                   type = 'json';
-                } catch(e) { }
+                } catch (e) {
+                  if (process.env.NODE_ENV !== 'production') {
+                    console.error(e);
+                  }
+                }
               } else if (/(application|text)\/(xml|html)/.test(mime)) {
                 type = 'document';
               }
@@ -184,7 +210,13 @@ export function sendRequest(request, callback) {
             } else if (type === 'arraybuffer') {
               responseValue = { $t: 'ab', $s: responseValue.byteLength }
             }
-            try { responseValue = JSON.stringify(responseValue) } catch { }
+            try {
+              responseValue = JSON.stringify(responseValue);
+            } catch (e) {
+              if (process.env.NODE_ENV !== 'production') {
+                console.error(e);
+              }
+            }
           }
         }
         fn({

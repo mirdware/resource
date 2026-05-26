@@ -19,6 +19,9 @@ export function mergeOptions(parent, options) {
   if (options.swr !== undefined) {
     properties.swr = options.swr ? Object.assign({}, parent.swr, options.swr) : null;
   }
+  if (options.retry !== undefined) {
+    properties.re = options.retry ? Object.assign({}, parent.re, options.retry) : null;
+  }
   for (const key in props) {
     if (options[key] !== undefined) {
       properties[props[key]] = options[key];
